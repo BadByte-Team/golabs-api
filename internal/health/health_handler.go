@@ -1,15 +1,18 @@
 package health
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"time"
 )
 
-type Handler struct{}
+type Handler struct {
+	db *sql.DB
+}
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(db *sql.DB) *Handler {
+	return &Handler{db: db}
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -18,9 +21,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dbStatus := "ok"
+	if err := h.db.Ping(); err != nil {
+		dbStatus = "error"
+	}
+
 	response := map[string]interface{}{
-		"status": "ok",
-		"time":   time.Now().UTC(),
+		"status":   "ok",
+		"database": dbStatus,
+		"time":     time.Now().UTC(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -10,8 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
+
 	"golabs-api/internal/infrastructure/config"
-	http_int "golabs-api/internal/interfaces/http_int"
+	"golabs-api/internal/infrastructure/db"
+	http_if "golabs-api/internal/interfaces/http"
 )
 
 func main() {
@@ -20,7 +23,17 @@ func main() {
 		log.Fatalf("error cargando config: %v", err)
 	}
 
-	router := http_int.NewRouter()
+	if err := godotenv.Load(); err != nil {
+		log.Println("[WARN] no se encontró .env, usando variables del sistema")
+	}
+
+	db, err := db.NewMySQL()
+	if err != nil {
+		log.Fatalf("[ERROR] no se pudo conectar a la base de datos: %v", err)
+	}
+	defer db.Close()
+
+	router := http_if.NewRouter(db)
 
 	server := &http.Server{
 		Addr:         ":" + strconv.Itoa(cfg.Server.Port),
