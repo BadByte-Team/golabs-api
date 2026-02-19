@@ -13,6 +13,10 @@ type User struct {
 	PasswordHash string
 	Role         string
 	Points       int
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+
+	Banned   bool
+	BannedAt *time.Time
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

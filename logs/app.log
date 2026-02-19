@@ -1,0 +1,4 @@
+{"time":"2026-02-19T13:09:04.267627791-06:00","level":"INFO","msg":"[INFO] conexión a MariaDB establecida"}
+{"time":"2026-02-19T13:09:04.267999565-06:00","level":"INFO","msg":"[INFO] golabs-api escuchando en puerto 8080"}
+{"time":"2026-02-19T13:09:47.483171662-06:00","level":"INFO","msg":"[INFO] apagando servidor..."}
+{"time":"2026-02-19T13:09:47.483313992-06:00","level":"INFO","msg":"[INFO] servidor detenido correctamente"}

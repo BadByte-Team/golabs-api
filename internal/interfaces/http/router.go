@@ -2,42 +2,91 @@ package http
 
 import (
 	"database/sql"
-	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	chimw "github.com/go-chi/chi/v5/middleware"
 
 	user_usecases "golabs-api/internal/application/usecases/user"
 	"golabs-api/internal/health"
 	repos "golabs-api/internal/infrastructure/db/repositories"
-	"golabs-api/internal/interfaces/http/handlers"
+	handlers "golabs-api/internal/interfaces/http/handlers"
+	authmw "golabs-api/internal/interfaces/http/middleware"
 )
 
-func NewRouter(db *sql.DB) http.Handler {
-	mux := http.NewServeMux()
+func NewRouter(db *sql.DB) *chi.Mux {
+	r := chi.NewRouter()
 
-	healthHandler := health.NewHandler(db)
-	mux.Handle("/health", healthHandler)
+	// ======================
+	// GLOBAL MIDDLEWARES
+	// ======================
+	r.Use(chimw.RequestID)
+	r.Use(chimw.Logger)
+	r.Use(chimw.Recoverer)
 
+	// TEMPORAL (luego JWT)
+	r.Use(authmw.FakeAuth)
+
+	// ======================
+	// HEALTH
+	// ======================
+	r.Get("/health", health.NewHandler(db).ServeHTTP)
+
+	// ======================
+	// DEPENDENCIAS
+	// ======================
 	userRepo := repos.NewUserRepository(db)
 
-	createUserUseCase := user_usecases.NewCreateUserUseCase(userRepo)
-	getUserByIDUseCase := user_usecases.NewGetUserByIDUseCase(userRepo)
-	updateUserUseCase := user_usecases.NewUpdateUserUseCase(userRepo)
+	createUserUC := user_usecases.NewCreateUserUseCase(userRepo)
+	getUserByIDUC := user_usecases.NewGetUserByIDUseCase(userRepo)
+	updateUserUC := user_usecases.NewUpdateUserUseCase(userRepo)
+	changePasswordUC := user_usecases.NewChangePasswordUseCase(userRepo)
+
+	updateRoleUC := user_usecases.NewUpdateUserRoleUseCase(userRepo)
+	updatePointsUC := user_usecases.NewUpdateUserPointsUseCase(userRepo)
+	banUserUC := user_usecases.NewBanUserUseCase(userRepo)
+	unbanUserUC := user_usecases.NewUnbanUserUseCase(userRepo)
 
 	userHandler := handlers.NewUserHandler(
-		createUserUseCase,
-		getUserByIDUseCase,
-		updateUserUseCase,
+		createUserUC,
+		getUserByIDUC,
+		updateUserUC,
+		changePasswordUC,
+		updateRoleUC,
+		updatePointsUC,
+		banUserUC,
+		unbanUserUC,
 	)
 
-	mux.HandleFunc("/users", userHandler.Create)
-	mux.HandleFunc("/users/", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			userHandler.GetByID(w, r)
-		case http.MethodPut:
-			userHandler.Update(w, r)
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-		}
+	// ======================
+	// USER ROUTES
+	// ======================
+	r.Route("/users", func(r chi.Router) {
+
+		// Crear usuario → solo admin
+		r.With(authmw.RequireRole("admin")).
+			Post("/", userHandler.Create)
+
+		// Ver perfil
+		r.Get("/{id}", userHandler.GetByID)
+
+		// Update perfil (username/email)
+		r.Post("/{id}/update", userHandler.Update)
+
+		// Cambiar contraseña
+		r.Post("/{id}/password", userHandler.ChangePassword)
 	})
-	return mux
+
+	// ======================
+	// ADMIN ROUTES
+	// ======================
+	r.Route("/admin/users", func(r chi.Router) {
+		r.Use(authmw.RequireRole("admin"))
+
+		r.Post("/{id}/role", userHandler.UpdateRole)
+		r.Post("/{id}/points", userHandler.UpdatePoints)
+		r.Post("/{id}/ban", userHandler.Ban)
+		r.Post("/{id}/unban", userHandler.Unban)
+	})
+
+	return r
 }

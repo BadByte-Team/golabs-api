@@ -4,100 +4,84 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	usecases "golabs-api/internal/application/usecases/user"
 	"golabs-api/internal/interfaces/dto"
 )
 
 type UserHandler struct {
-	createUser  *usecases.CreateUserUseCase
-	getUserByID *usecases.GetUserByIDUseCase
-	updateUser  *usecases.UpdateUserUseCase
+	createUser     *usecases.CreateUserUseCase
+	getUserByID    *usecases.GetUserByIDUseCase
+	updateUser     *usecases.UpdateUserUseCase
+	changePassword *usecases.ChangePasswordUseCase
+
+	updateRole   *usecases.UpdateUserRoleUseCase
+	updatePoints *usecases.UpdateUserPointsUseCase
+	banUser      *usecases.BanUserUseCase
+	unbanUser    *usecases.UnbanUserUseCase
 }
 
 func NewUserHandler(
 	createUser *usecases.CreateUserUseCase,
 	getUserByID *usecases.GetUserByIDUseCase,
 	updateUser *usecases.UpdateUserUseCase,
+	changePassword *usecases.ChangePasswordUseCase,
+	updateRole *usecases.UpdateUserRoleUseCase,
+	updatePoints *usecases.UpdateUserPointsUseCase,
+	banUser *usecases.BanUserUseCase,
+	unbanUser *usecases.UnbanUserUseCase,
 ) *UserHandler {
 	return &UserHandler{
-		createUser:  createUser,
-		getUserByID: getUserByID,
-		updateUser:  updateUser,
+		createUser:     createUser,
+		getUserByID:    getUserByID,
+		updateUser:     updateUser,
+		changePassword: changePassword,
+		updateRole:     updateRole,
+		updatePoints:   updatePoints,
+		banUser:        banUser,
+		unbanUser:      unbanUser,
 	}
 }
 
-func (uh *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
+func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "json invalid", http.StatusBadRequest)
+		http.Error(w, "json inválido", http.StatusBadRequest)
 		return
 	}
 
-	user, err := uh.createUser.Execute(req.Username, req.Email, req.Password)
+	user, err := h.createUser.Execute(
+		req.Username,
+		req.Email,
+		req.Password,
+	)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	resp := dto.UserResponse{
-		ID:       user.ID.String(),
-		Username: user.Username,
-		Email:    user.Email,
-		Role:     user.Role,
-		Points:   user.Points,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(resp)
+	h.respondUser(w, user, http.StatusCreated)
 }
 
-func (uh *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	id := r.URL.Path[len("/users/"):]
+func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
 	if id == "" {
 		http.Error(w, "id requerido", http.StatusBadRequest)
 		return
 	}
 
-	user, err := uh.getUserByID.Execute(id)
+	user, err := h.getUserByID.Execute(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	resp := dto.UserResponse{
-		ID:       user.ID.String(),
-		Username: user.Username,
-		Email:    user.Email,
-		Role:     user.Role,
-		Points:   user.Points,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	h.respondUser(w, user, http.StatusOK)
 }
 
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-
-	id := r.URL.Path[len("/users/"):]
-	if id == "" {
-		http.Error(w, "id requerido", http.StatusBadRequest)
-		return
-	}
+	id := chi.URLParam(r, "id")
 
 	var req dto.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -108,22 +92,109 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	user, err := h.updateUser.Execute(
 		id,
 		req.Username,
-		req.Role,
-		req.Points,
+		req.Email,
 	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	resp := dto.UserResponse{
-		ID:       user.ID.String(),
-		Username: user.Username,
-		Email:    user.Email,
-		Role:     user.Role,
-		Points:   user.Points,
+	h.respondUser(w, user, http.StatusOK)
+}
+
+func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	var req dto.ChangePasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "json inválido", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.changePassword.Execute(
+		id,
+		req.CurrentPassword,
+		req.NewPassword,
+	); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *UserHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	var req dto.UpdateUserRoleRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "json inválido", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.updateRole.Execute(id, req.Role); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *UserHandler) UpdatePoints(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	var req dto.UpdateUserPointsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "json inválido", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.updatePoints.Execute(id, req.Points); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *UserHandler) Ban(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	if err := h.banUser.Execute(id); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	resp := dto.BanUserResponse{
+		Banned: true,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *UserHandler) Unban(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	if err := h.unbanUser.Execute(id); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	resp := dto.BanUserResponse{
+		Banned: false,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *UserHandler) respondUser(
+	w http.ResponseWriter,
+	user any,
+	status int,
+) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(user)
 }

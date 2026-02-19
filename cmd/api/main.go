@@ -18,6 +18,7 @@ import (
 )
 
 func main() {
+
 	cfg, err := config.Load("configs/config.yaml")
 	if err != nil {
 		log.Fatalf("error cargando config: %v", err)

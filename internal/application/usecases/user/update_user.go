@@ -20,8 +20,7 @@ func NewUpdateUserUseCase(repo repositories.UserRepository) *UpdateUserUseCase {
 func (uc *UpdateUserUseCase) Execute(
 	id string,
 	username string,
-	role string,
-	points int,
+	email string,
 ) (*entities.User, error) {
 
 	if _, err := uuid.Parse(id); err != nil {
@@ -37,12 +36,8 @@ func (uc *UpdateUserUseCase) Execute(
 		user.Username = username
 	}
 
-	if role != "" {
-		user.Role = role
-	}
-
-	if points >= 0 {
-		user.Points = points
+	if email != "" {
+		user.Email = email
 	}
 
 	if err := uc.repo.Update(user); err != nil {
