@@ -20,14 +20,24 @@ func NewRouter(db *sql.DB) http.Handler {
 
 	createUserUseCase := user_usecases.NewCreateUserUseCase(userRepo)
 	getUserByIDUseCase := user_usecases.NewGetUserByIDUseCase(userRepo)
+	updateUserUseCase := user_usecases.NewUpdateUserUseCase(userRepo)
 
 	userHandler := handlers.NewUserHandler(
 		createUserUseCase,
 		getUserByIDUseCase,
+		updateUserUseCase,
 	)
 
 	mux.HandleFunc("/users", userHandler.Create)
-	mux.HandleFunc("/users/", userHandler.GetByID)
-
+	mux.HandleFunc("/users/", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			userHandler.GetByID(w, r)
+		case http.MethodPut:
+			userHandler.Update(w, r)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
 	return mux
 }

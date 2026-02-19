@@ -13,3 +13,9 @@ type UserResponse struct {
 	Role     string `json:"role"`
 	Points   int    `json:"points"`
 }
+
+type UpdateUserRequest struct {
+	Username string `json:"username"`
+	Role     string `json:"role"`
+	Points   int    `json:"points"`
+}
