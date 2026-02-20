@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	usecases "golabs-api/internal/application/usecases/user"
+	"golabs-api/internal/domain/entities"
 	"golabs-api/internal/interfaces/dto"
 )
 
@@ -191,10 +192,22 @@ func (h *UserHandler) Unban(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) respondUser(
 	w http.ResponseWriter,
-	user any,
+	user *entities.User,
 	status int,
 ) {
+	resp := dto.UserResponse{
+		ID:        user.ID.String(),
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      user.Role,
+		Points:    user.Points,
+		Banned:    user.Banned,
+		BannedAt:  user.BannedAt,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(resp)
 }

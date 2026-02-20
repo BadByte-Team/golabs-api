@@ -1,12 +1,11 @@
 package middleware
 
-import (
-	"context"
-)
+import "context"
 
 type UserContext struct {
 	UserID string
 	Role   string
+	Banned bool
 }
 
 type ctxKey string

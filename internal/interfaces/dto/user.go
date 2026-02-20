@@ -20,6 +20,13 @@ type UserResponse struct {
 	BannedAt  *time.Time `json:"banned_at,omitempty"`
 }
 
+type UserPublicResponse struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+	Points   int    `json:"points"`
+}
+
 type UpdateUserRequest struct {
 	Username string `json:"username,omitempty"`
 	Email    string `json:"email,omitempty"`
