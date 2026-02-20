@@ -52,6 +52,7 @@ func NewRouter(db *sql.DB) *chi.Mux {
 	)
 
 	r.Route("/auth", func(r chi.Router) {
+		r.Use(authmw.LoginRateLimit)
 		r.Post("/login", authHandler.Login)
 		r.Post("/register", authHandler.Register)
 	})
@@ -60,6 +61,7 @@ func NewRouter(db *sql.DB) *chi.Mux {
 		r.Use(authmw.JWTAuth(jwtSvc))
 		r.Use(authmw.LoadUser(userRepo))
 		r.Use(authmw.RequireNotBanned)
+		r.Use(authmw.UserRateLimit)
 
 		r.Route("/users", func(r chi.Router) {
 
