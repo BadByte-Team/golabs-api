@@ -1,0 +1,69 @@
+version: "3.9"
+services:
+
+  mariadb:
+    container_name: golabs-mariadb
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${MARIADB_PORT}:3306"
+    volumes:
+      - ./volumes/mariadb:/var/lib/mysql
+      - golabs-backups:/backups
+    healthcheck:
+      test: [ "CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MARIADB_ROOT_PASSWORD}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - golabs-db-internal # Red interna: solo MariaDB y Flyway
+      - golabs-db-net # Red externa: cuando el backend se dockerice se conecta aqui
+
+  flyway:
+    image: flyway/flyway:10
+    container_name: golabs-flyway
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    command: migrate
+    volumes:
+      - ./init:/flyway/sql
+    environment:
+      FLYWAY_URL: jdbc:mariadb://mariadb:3306/${MARIADB_DATABASE}
+      FLYWAY_USER: root
+      FLYWAY_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+      FLYWAY_BASELINE_VERSION: "0"
+    networks:
+      - golabs-db-internal # Solo necesita hablar con MariaDB, no con el exterior
+    restart: on-failure
+  # Cuando se dockerice el backend en  Go, agregar este bloque y quitar el comentario:
+  # backend:
+  #   container_name: golabs-backend
+  #   build: ./ruta-al-backend
+  #   restart: unless-stopped
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     mariadb:
+  #       condition: service_healthy
+  #   ports:
+  #     - "${BACKEND_PORT}:8080"
+  #   networks:
+  #     - golabs-db-net     # Se conecta a MariaDB via red externa
+  #                         # No tiene acceso a golabs-db-internal
+
+networks:
+  golabs-db-internal:
+    driver: bridge
+    internal: true # Esta red no tiene salida a internet
+  golabs-db-net:
+    driver: bridge # Esta red es la puerta de entrada del backend
+
+volumes:
+  golabs-backups:
+    # Volumen nombrado: los backups persisten independiente de la carpeta
+    driver: local
