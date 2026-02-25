@@ -239,6 +239,77 @@ func (r *MySQLEventTeamRepository) IsUserInEvent(eventID, userID uuid.UUID) (boo
 	return count > 0, err
 }
 
+func (r *MySQLEventTeamRepository) ListTeamsByEvent(eventID uuid.UUID) ([]*teamdomain.EventTeam, error) {
+	query := `
+		SELECT id, event_id, name, join_secret_hash,
+		       score, created_at, updated_at
+		FROM event_teams
+		WHERE event_id = ?
+		ORDER BY score DESC
+	`
+	rows, err := r.db.Query(query, eventID.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	teams := make([]*teamdomain.EventTeam, 0)
+	for rows.Next() {
+		var t teamdomain.EventTeam
+		var id, evID string
+		err := rows.Scan(&id, &evID, &t.Name, &t.JoinSecretHash, &t.Score, &t.CreatedAt, &t.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		t.ID, err = uuid.Parse(id)
+		if err != nil {
+			return nil, err
+		}
+		t.EventID, err = uuid.Parse(evID)
+		if err != nil {
+			return nil, err
+		}
+		teams = append(teams, &t)
+	}
+	return teams, rows.Err()
+}
+
+func (r *MySQLEventTeamRepository) ListMembersWithUsername(teamID uuid.UUID) ([]*teamdomain.MemberWithUsername, error) {
+	query := `
+		SELECT etm.event_team_id, etm.user_id, u.username, etm.role, etm.joined_at
+		FROM event_team_members etm
+		JOIN users u ON u.id = etm.user_id
+		WHERE etm.event_team_id = ?
+		ORDER BY etm.joined_at ASC
+	`
+	rows, err := r.db.Query(query, teamID.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	members := make([]*teamdomain.MemberWithUsername, 0)
+	for rows.Next() {
+		var m teamdomain.MemberWithUsername
+		var teamIDStr, userIDStr, role string
+		err := rows.Scan(&teamIDStr, &userIDStr, &m.Username, &role, &m.JoinedAt)
+		if err != nil {
+			return nil, err
+		}
+		m.EventTeamID, err = uuid.Parse(teamIDStr)
+		if err != nil {
+			return nil, err
+		}
+		m.UserID, err = uuid.Parse(userIDStr)
+		if err != nil {
+			return nil, err
+		}
+		m.Role = teamdomain.TeamRole(role)
+		members = append(members, &m)
+	}
+	return members, rows.Err()
+}
+
 func (r *MySQLEventTeamRepository) GetTeamByUserAndEvent(eventID, userID uuid.UUID) (*teamdomain.EventTeam, error) {
 	query := `
 		SELECT et.id, et.event_id, et.name, et.join_secret_hash,

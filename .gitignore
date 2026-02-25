@@ -2,3 +2,13 @@ volumes
 .env
 .env.example
 tools
+
+docker-compose.yml
+Dockerfile
+Dockerfile
+Makefile
+
+./Dockerfile
+./Dockerfile
+./docker-compose.yml
+./Makefile

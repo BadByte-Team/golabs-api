@@ -9,6 +9,9 @@ type UserRepository interface {
 	// SearchByUsername returns users whose username contains the query string (case-insensitive).
 	SearchByUsername(query string) ([]*User, error)
 
+	// List returns a paginated list of all users and the total count.
+	List(offset, size int) ([]*User, int, error)
+
 	Update(user *User) error
 	UpdatePassword(userID string, passwordHash string) error
 

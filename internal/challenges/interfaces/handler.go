@@ -1,7 +1,6 @@
 package interfaces
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -11,6 +10,7 @@ import (
 	challengeapp "golabs-api/internal/challenges/application"
 	challengedomain "golabs-api/internal/challenges/domain"
 	authmw "golabs-api/internal/interfaces/http/middleware/auth"
+	"golabs-api/internal/interfaces/http/validate"
 	userdomain "golabs-api/internal/user/domain"
 )
 
@@ -56,15 +56,19 @@ func (h *ChallengeHandler) List(w http.ResponseWriter, r *http.Request) {
 	user, _ := authmw.GetUser(r.Context())
 	isAdmin := user.Role == userdomain.RoleAdmin
 
-	challenges, err := h.listUC.Execute(eventID, isAdmin)
+	// Optional ?category= and ?difficulty= filters
+	category := r.URL.Query().Get("category")
+	difficulty := r.URL.Query().Get("difficulty")
+
+	results, err := h.listUC.Execute(eventID, isAdmin, category, difficulty)
 	if err != nil {
 		apperrors.RespondError(w, err)
 		return
 	}
 
-	resp := make([]ChallengeResponse, 0, len(challenges))
-	for _, c := range challenges {
-		resp = append(resp, mapChallenge(c))
+	resp := make([]ChallengeResponse, 0, len(results))
+	for _, res := range results {
+		resp = append(resp, mapChallengeResult(res))
 	}
 	apperrors.RespondJSON(w, http.StatusOK, resp)
 }
@@ -99,8 +103,8 @@ func (h *ChallengeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req CreateChallengeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		apperrors.RespondError(w, apperrors.ErrBadRequest)
+	if err := validate.DecodeAndValidate(r, &req); err != nil {
+		apperrors.RespondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -129,8 +133,8 @@ func (h *ChallengeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req UpdateChallengeRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		apperrors.RespondError(w, apperrors.ErrBadRequest)
+	if err := validate.DecodeAndValidate(r, &req); err != nil {
+		apperrors.RespondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -191,8 +195,8 @@ func (h *ChallengeHandler) SetFlag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req SetFlagRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Flag == "" {
-		apperrors.RespondError(w, apperrors.ErrBadRequest)
+	if err := validate.DecodeAndValidate(r, &req); err != nil {
+		apperrors.RespondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -226,8 +230,8 @@ func (h *ChallengeHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req SubmitFlagRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Flag == "" {
-		apperrors.RespondError(w, apperrors.ErrBadRequest)
+	if err := validate.DecodeAndValidate(r, &req); err != nil {
+		apperrors.RespondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -258,4 +262,15 @@ func mapChallenge(c *challengedomain.Challenge) ChallengeResponse {
 		CreatedAt:   c.CreatedAt,
 		UpdatedAt:   c.UpdatedAt,
 	}
+}
+
+// mapChallengeResult enriches the response with solve stats.
+func mapChallengeResult(res *challengeapp.ListChallengesResult) ChallengeResponse {
+	r := mapChallenge(res.Challenge)
+	r.SolveCount = res.SolveCount
+	if res.FirstBlood != nil {
+		tid := res.FirstBlood.EventTeamID.String()
+		r.FirstBloodTeamID = &tid
+	}
+	return r
 }

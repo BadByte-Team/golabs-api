@@ -9,7 +9,8 @@ type Repository interface {
 	UpdateChallenge(c *Challenge) error
 	GetChallengeByID(id uuid.UUID) (*Challenge, error)
 	// visibleOnly=true for participants; false for admins
-	ListChallengesByEvent(eventID uuid.UUID, visibleOnly bool) ([]*Challenge, error)
+	// category and difficulty are optional filters (empty = no filter)
+	ListChallengesByEvent(eventID uuid.UUID, visibleOnly bool, category, difficulty string) ([]*Challenge, error)
 
 	// ── Flags ───────────────────────────────────────────────────────────────
 
@@ -23,4 +24,9 @@ type Repository interface {
 	HasTeamSolved(challengeID, teamID uuid.UUID) (bool, error)
 	ListSolvesByChallenge(challengeID uuid.UUID) ([]*Solve, error)
 	ListSolvesByTeam(teamID uuid.UUID) ([]*Solve, error)
+
+	// GetSolveCount returns how many teams have solved this challenge.
+	GetSolveCount(challengeID uuid.UUID) (int, error)
+	// GetFirstBlood returns the first solve for a challenge (nil if unsolved).
+	GetFirstBlood(challengeID uuid.UUID) (*Solve, error)
 }

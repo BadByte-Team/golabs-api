@@ -1,7 +1,6 @@
 package interfaces
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -9,6 +8,8 @@ import (
 	"golabs-api/internal/apperrors"
 	eventsapp "golabs-api/internal/event/application"
 	eventdomain "golabs-api/internal/event/domain"
+	"golabs-api/internal/interfaces/http/pagination"
+	"golabs-api/internal/interfaces/http/validate"
 )
 
 type EventHandler struct {
@@ -40,8 +41,8 @@ func NewEventHandler(
 
 func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req CreateEventRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		apperrors.RespondError(w, apperrors.ErrBadRequest)
+	if err := validate.DecodeAndValidate(r, &req); err != nil {
+		apperrors.RespondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -73,18 +74,31 @@ func (h *EventHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
+	pg := pagination.Parse(r)
 	events, err := h.listUC.Execute()
 	if err != nil {
 		apperrors.RespondError(w, err)
 		return
 	}
 
-	resp := make([]EventResponse, 0, len(events))
-	for _, e := range events {
+	// Apply manual pagination on the slice (list is small in practice).
+	total := len(events)
+	start := pg.Offset()
+	if start > total {
+		start = total
+	}
+	end := start + pg.Size
+	if end > total {
+		end = total
+	}
+	page := events[start:end]
+
+	resp := make([]EventResponse, 0, len(page))
+	for _, e := range page {
 		resp = append(resp, mapEvent(e))
 	}
 
-	apperrors.RespondJSON(w, http.StatusOK, resp)
+	apperrors.RespondJSON(w, http.StatusOK, pagination.New(resp, pg, total))
 }
 
 func (h *EventHandler) Open(w http.ResponseWriter, r *http.Request) {

@@ -78,19 +78,24 @@ func (r *MySQLChallengeRepository) GetChallengeByID(id uuid.UUID) (*challengedom
 	return scanChallenge(smt.QueryRow(id.String()))
 }
 
-func (r *MySQLChallengeRepository) ListChallengesByEvent(eventID uuid.UUID, visibleOnly bool) ([]*challengedomain.Challenge, error) {
-	query := `
-		SELECT id, event_id, title, description, category,
-		       points, difficulty, visible, created_at, updated_at
-		FROM challenges
-		WHERE event_id = ?
-	`
-	if visibleOnly {
-		query += " AND visible = TRUE"
-	}
-	query += " ORDER BY category, points ASC"
+func (r *MySQLChallengeRepository) ListChallengesByEvent(eventID uuid.UUID, visibleOnly bool, category, difficulty string) ([]*challengedomain.Challenge, error) {
+	q := `SELECT id, event_id, title, description, category, points, difficulty, visible, created_at, updated_at FROM challenges WHERE event_id = ?`
+	args := []any{eventID.String()}
 
-	rows, err := r.db.Query(query, eventID.String())
+	if visibleOnly {
+		q += " AND visible = TRUE"
+	}
+	if category != "" {
+		q += " AND category = ?"
+		args = append(args, category)
+	}
+	if difficulty != "" {
+		q += " AND difficulty = ?"
+		args = append(args, difficulty)
+	}
+	q += " ORDER BY category, points ASC"
+
+	rows, err := r.db.Query(q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -104,11 +109,7 @@ func (r *MySQLChallengeRepository) ListChallengesByEvent(eventID uuid.UUID, visi
 		}
 		challenges = append(challenges, c)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return challenges, nil
+	return challenges, rows.Err()
 }
 
 /* ── Flags ──────────────────────────────────────────────────────────────── */
@@ -227,6 +228,31 @@ func (r *MySQLChallengeRepository) listSolves(where, arg string) ([]*challengedo
 	}
 
 	return solves, nil
+}
+
+func (r *MySQLChallengeRepository) GetSolveCount(challengeID uuid.UUID) (int, error) {
+	var count int
+	err := r.db.QueryRow(`SELECT COUNT(*) FROM solves WHERE challenge_id = ?`, challengeID.String()).Scan(&count)
+	return count, err
+}
+
+func (r *MySQLChallengeRepository) GetFirstBlood(challengeID uuid.UUID) (*challengedomain.Solve, error) {
+	query := `SELECT id, challenge_id, event_team_id, user_id, solved_at FROM solves WHERE challenge_id = ? ORDER BY solved_at ASC LIMIT 1`
+
+	rows, err := r.db.Query(query, challengeID.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		s, err := scanSolve(rows)
+		if err != nil {
+			return nil, err
+		}
+		return s, rows.Err()
+	}
+	return nil, nil // no current first blood — challenge unsolved
 }
 
 /* ── helpers ────────────────────────────────────────────────────────────── */

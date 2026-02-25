@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"golabs-api/internal/apperrors"
+	"golabs-api/internal/interfaces/http/pagination"
 	userapp "golabs-api/internal/user/application"
 	userdomain "golabs-api/internal/user/domain"
 )
@@ -15,6 +16,7 @@ type UserHandler struct {
 	getUserByID       *userapp.GetUserByIDUseCase
 	getUserByUsername *userapp.GetUserByUsernameUseCase
 	searchByUsername  *userapp.SearchUserByUsernameUseCase
+	listUsers         *userapp.ListUsersUseCase
 	updateUser        *userapp.UpdateUserUseCase
 	changePassword    *userapp.ChangePasswordUseCase
 	updateRole        *userapp.UpdateUserRoleUseCase
@@ -28,6 +30,7 @@ func NewUserHandler(
 	getUserByID *userapp.GetUserByIDUseCase,
 	getUserByUsername *userapp.GetUserByUsernameUseCase,
 	searchByUsername *userapp.SearchUserByUsernameUseCase,
+	listUsers *userapp.ListUsersUseCase,
 	updateUser *userapp.UpdateUserUseCase,
 	changePassword *userapp.ChangePasswordUseCase,
 	updateRole *userapp.UpdateUserRoleUseCase,
@@ -40,6 +43,7 @@ func NewUserHandler(
 		getUserByID:       getUserByID,
 		getUserByUsername: getUserByUsername,
 		searchByUsername:  searchByUsername,
+		listUsers:         listUsers,
 		updateUser:        updateUser,
 		changePassword:    changePassword,
 		updateRole:        updateRole,
@@ -47,6 +51,22 @@ func NewUserHandler(
 		banUser:           banUser,
 		unbanUser:         unbanUser,
 	}
+}
+
+// List handles GET /users/ (admin only)
+func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
+	pg := pagination.Parse(r)
+	users, total, err := h.listUsers.Execute(pg.Number, pg.Size)
+	if err != nil {
+		apperrors.RespondError(w, err)
+		return
+	}
+
+	resp := make([]UserResponse, 0, len(users))
+	for _, u := range users {
+		resp = append(resp, mapUser(u))
+	}
+	apperrors.RespondJSON(w, http.StatusOK, pagination.New(resp, pg, total))
 }
 
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {

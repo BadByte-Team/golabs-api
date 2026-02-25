@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,40 +18,44 @@ import (
 )
 
 func main() {
+	// Structured JSON logging — parseable by Loki, Datadog, CloudWatch, etc.
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
 
 	cfg, err := config.Load("configs/config.yaml")
 	if err != nil {
-		log.Fatalf("error cargando config: %v", err)
+		slog.Error("error loading config", "error", err)
+		os.Exit(1)
 	}
 
 	if err := godotenv.Load(); err != nil {
-		log.Println("[WARN] no se encontró .env, usando variables del sistema")
+		slog.Warn("no .env file found, using system environment variables")
 	}
 
-	db, err := db.NewMySQL()
+	database, err := db.NewMySQL()
 	if err != nil {
-		log.Fatalf("[ERROR] no se pudo conectar a la base de datos: %v", err)
+		slog.Error("database connection failed", "error", err)
+		os.Exit(1)
 	}
-	defer db.Close()
+	defer database.Close()
 
-	router := http_if.NewRouter(db)
+	router := http_if.NewRouter(database)
 
 	server := &http.Server{
 		Addr:         ":" + strconv.Itoa(cfg.Server.Port),
 		Handler:      router,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  15 * time.Second,
+		IdleTimeout:  30 * time.Second,
 	}
 
 	go func() {
-		log.Printf("[INFO] %s escuchando en puerto %d",
-			cfg.App.Name,
-			cfg.Server.Port,
-		)
-
+		slog.Info("server starting", "app", cfg.App.Name, "port", cfg.Server.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("error servidor: %v", err)
+			slog.Error("server error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -63,14 +67,14 @@ func shutdown(server *http.Server) {
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
 	<-stop
-	log.Println("[INFO] apagando servidor...")
+	slog.Info("shutting down server...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Printf("[WARN] shutdown forzado: %v", err)
+		slog.Warn("forced shutdown", "error", err)
 	}
 
-	log.Println("[INFO] servidor detenido correctamente")
+	slog.Info("server stopped")
 }

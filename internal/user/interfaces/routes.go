@@ -23,6 +23,7 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 	getUserByIDUC := userapp.NewGetUserByIDUseCase(repo)
 	getUserByUsernameUC := userapp.NewGetUserByUsernameUseCase(repo)
 	searchByUsernameUC := userapp.NewSearchUserByUsernameUseCase(repo)
+	listUsersUC := userapp.NewListUsersUseCase(repo)
 	updateUserUC := userapp.NewUpdateUserUseCase(repo)
 	changePasswordUC := userapp.NewChangePasswordUseCase(repo)
 	updateRoleUC := userapp.NewUpdateUserRoleUseCase(repo)
@@ -35,6 +36,7 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 	authHandler := NewAuthHandler(loginUC, createUserUC)
 	userHandler := NewUserHandler(
 		createUserUC, getUserByIDUC, getUserByUsernameUC, searchByUsernameUC,
+		listUsersUC,
 		updateUserUC, changePasswordUC, updateRoleUC, updatePointsUC,
 		banUserUC, unbanUserUC,
 	)
@@ -54,6 +56,9 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 		r.Use(ratelimit.UserRateLimit)
 
 		r.Route("/users", func(r chi.Router) {
+			// Admin: list all users (paginated)
+			r.With(accessmw.RequireRole(userdomain.RoleAdmin)).Get("/", userHandler.List)
+
 			// Admin: create user
 			r.With(accessmw.RequireRole(userdomain.RoleAdmin)).Post("/", userHandler.Create)
 

@@ -242,3 +242,30 @@ func populateUser(u *userdomain.User, id string, bannedAt sql.NullTime) (*userdo
 	}
 	return u, nil
 }
+
+func (r *MySQLUserRepository) List(offset, size int) ([]*userdomain.User, int, error) {
+	var total int
+	if err := r.db.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	rows, err := r.db.Query(
+		`SELECT id, username, email, password_hash, role, points, created_at, updated_at, banned, banned_at
+		 FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+		size, offset,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	users := make([]*userdomain.User, 0)
+	for rows.Next() {
+		u, err := scanUserRow(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		users = append(users, u)
+	}
+	return users, total, rows.Err()
+}

@@ -29,6 +29,8 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 	joinUC := teamapp.NewJoinTeamUseCase(eventRepo, teamRepo)
 	leaveUC := teamapp.NewLeaveTeamUseCase(teamRepo)
 	rotateUC := teamapp.NewRotateJoinSecretUseCase(teamRepo)
+	listTeamsUC := teamapp.NewListTeamsByEventUseCase(teamRepo)
+	leaderboardUC := teamapp.NewGetLeaderboardUseCase(teamRepo)
 
 	// Handler
 	handler := NewEventTeamHandler(
@@ -36,6 +38,8 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 		joinUC,
 		leaveUC,
 		rotateUC,
+		listTeamsUC,
+		leaderboardUC,
 	)
 
 	// Protected routes (user autenticado)
@@ -45,18 +49,24 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 		r.Use(accessmw.RequireNotBanned)
 
 		r.Route("/events/{event_id}/teams", func(r chi.Router) {
+			// List all teams in an event
+			r.Get("/", handler.ListTeams)
 
-			// Crear equipo (usuario normal)
+			// Create a team
 			r.Post("/", handler.Create)
 
-			// Unirse a equipo
+			// Join a team with secret
 			r.Post("/join", handler.Join)
 
-			// Acciones sobre equipo específico
+			// Actions on a specific team
 			r.Route("/{team_id}", func(r chi.Router) {
+				r.Get("/members", handler.ListMembers)
 				r.Post("/leave", handler.Leave)
 				r.Post("/rotate-secret", handler.RotateSecret)
 			})
 		})
+
+		// Leaderboard is public to any authenticated user
+		r.Get("/events/{event_id}/leaderboard", handler.Leaderboard)
 	})
 }

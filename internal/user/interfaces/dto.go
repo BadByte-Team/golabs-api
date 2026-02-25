@@ -4,8 +4,8 @@ import "time"
 
 // Auth
 type LoginRequest struct {
-	Identifier string `json:"identifier"` // email address or username
-	Password   string `json:"password"`
+	Identifier string `json:"identifier" validate:"required"`
+	Password   string `json:"password"   validate:"required,min=6"`
 }
 
 type LoginResponse struct {
@@ -14,9 +14,9 @@ type LoginResponse struct {
 
 // User CRUD
 type CreateUserRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Username string `json:"username" validate:"required,min=3,max=30"`
+	Email    string `json:"email"    validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
 }
 
 type UserResponse struct {
@@ -39,21 +39,21 @@ type UserPublicResponse struct {
 }
 
 type UpdateUserRequest struct {
-	Username string `json:"username,omitempty"`
-	Email    string `json:"email,omitempty"`
+	Username string `json:"username,omitempty" validate:"omitempty,min=3,max=30"`
+	Email    string `json:"email,omitempty"   validate:"omitempty,email"`
 }
 
 type ChangePasswordRequest struct {
-	CurrentPassword string `json:"current_password"`
-	NewPassword     string `json:"new_password"`
+	CurrentPassword string `json:"current_password" validate:"required"`
+	NewPassword     string `json:"new_password"     validate:"required,min=6"`
 }
 
 type UpdateUserRoleRequest struct {
-	Role string `json:"role"`
+	Role string `json:"role" validate:"required,oneof=admin user"`
 }
 
 type UpdateUserPointsRequest struct {
-	Points int `json:"points"`
+	Points int `json:"points" validate:"min=0"`
 }
 
 type BanUserResponse struct {
