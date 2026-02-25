@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>GoLabs API Tester</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #0d0f14;
+      color: #e2e8f0;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* header */
+    header {
+      background: #141720;
+      border-bottom: 1px solid #252a3d;
+      padding: .75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #a78bfa;
+    }
+
+    .hright {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    .user-pill {
+      background: #1a1e2e;
+      border: 1px solid #252a3d;
+      border-radius: 20px;
+      padding: .3rem .85rem;
+      font-size: .75rem;
+      color: #94a3b8;
+    }
+
+    .server-chip {
+      background: #6366f115;
+      border: 1px solid #6366f130;
+      border-radius: 20px;
+      padding: .3rem .85rem;
+      font-size: .7rem;
+      color: #818cf8;
+      font-family: monospace;
+    }
+
+    .btn-logout {
+      background: none;
+      border: 1px solid #252a3d;
+      color: #64748b;
+      padding: .3rem .75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .75rem;
+      font-family: inherit;
+    }
+
+    .btn-logout:hover {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    /* layout */
+    .body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* sidebar */
+    aside {
+      width: 210px;
+      background: #141720;
+      border-right: 1px solid #252a3d;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .nav-section {
+      padding: .6rem 1rem .2rem;
+      font-size: .6rem;
+      font-weight: 700;
+      color: #334155;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .nav-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: .45rem 1rem;
+      background: none;
+      border: none;
+      border-left: 2px solid transparent;
+      color: #94a3b8;
+      font-size: .8rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .12s;
+    }
+
+    .nav-item:hover {
+      color: #c4b5fd;
+      background: #ffffff06;
+    }
+
+    .nav-item.active {
+      border-left-color: #6366f1;
+      background: #6366f110;
+      color: #a78bfa;
+      font-weight: 600;
+    }
+
+    /* main */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+      background: #0d0f14;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* cards */
+    .card {
+      background: #141720;
+      border: 1px solid #252a3d;
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+
+    .card-title {
+      font-size: .8rem;
+      font-weight: 600;
+      color: #c4b5fd;
+      margin-bottom: .75rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .badge {
+      padding: .15rem .45rem;
+      border-radius: 4px;
+      font-size: .6rem;
+      font-weight: 700;
+      font-family: monospace;
+    }
+
+    .get {
+      background: #0ea5e920;
+      color: #38bdf8;
+    }
+
+    .post {
+      background: #22c55e20;
+      color: #4ade80;
+    }
+
+    .put {
+      background: #f59e0b20;
+      color: #fbbf24;
+    }
+
+    .del {
+      background: #ef444420;
+      color: #f87171;
+    }
+
+    /* form helpers */
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .6rem;
+    }
+
+    .row3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: .6rem;
+    }
+
+    .row4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: .6rem;
+    }
+
+    .fg {
+      margin-bottom: .6rem;
+    }
+
+    label {
+      display: block;
+      font-size: .7rem;
+      color: #64748b;
+      font-weight: 500;
+      margin-bottom: .25rem;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      background: #0d0f14;
+      border: 1px solid #1e2330;
+      border-radius: 6px;
+      color: #e2e8f0;
+      padding: .45rem .7rem;
+      font-size: .8rem;
+      font-family: inherit;
+      transition: border .12s;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #6366f1;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+      font-family: monospace;
+      font-size: .75rem;
+    }
+
+    /* buttons */
+    .btn {
+      padding: .45rem .9rem;
+      border-radius: 6px;
+      border: none;
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity .12s;
+    }
+
+    .btn:hover {
+      opacity: .85;
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    .bp {
+      background: #6366f1;
+      color: #fff;
+    }
+
+    .bd {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .bg2 {
+      background: #1a1e2e;
+      border: 1px solid #252a3d;
+      color: #94a3b8;
+    }
+
+    .bg2:hover {
+      border-color: #6366f1;
+      color: #a78bfa;
+      opacity: 1;
+    }
+
+    .brow {
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+      margin-top: .25rem;
+    }
+
+    /* response */
+    .res-wrap {
+      margin-top: .75rem;
+      display: none;
+    }
+
+    .res-wrap.show {
+      display: block;
+    }
+
+    .res-status {
+      padding: .3rem .65rem;
+      font-size: .68rem;
+      font-weight: 700;
+      font-family: monospace;
+      border-radius: 6px 6px 0 0;
+      display: inline-block;
+    }
+
+    .s2xx {
+      background: #22c55e25;
+      color: #4ade80;
+    }
+
+    .s4xx,
+    .s0 {
+      background: #ef444425;
+      color: #f87171;
+    }
+
+    .s3xx {
+      background: #f59e0b25;
+      color: #fbbf24;
+    }
+
+    pre {
+      background: #080a0f;
+      padding: .75rem;
+      font-size: .7rem;
+      font-family: monospace;
+      border-radius: 0 6px 6px 6px;
+      overflow: auto;
+      max-height: 260px;
+      color: #94a3b8;
+      line-height: 1.55;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="logo">🚩 GoLabs API Tester</div>
+    <div class="hright">
+      <span class="server-chip">{{ base_url }}/api/v1</span>
+      <span class="user-pill">👤 {{ username }}</span>
+      <button class="btn-logout" onclick="window.location.href='/logout'">Salir</button>
+    </div>
+  </header>
+
+  <div class="body">
+    <aside>
+      <div class="nav-section">Sistema</div>
+      <button class="nav-item active" onclick="show('health')">⚡ Health</button>
+
+      <div class="nav-section">Auth</div>
+      <button class="nav-item" onclick="show('auth')">🔑 Auth</button>
+
+      <div class="nav-section">Usuarios</div>
+      <button class="nav-item" onclick="show('users')">👤 Mi perfil</button>
+      <button class="nav-item" onclick="show('user-search')">🔍 Búsqueda</button>
+      <button class="nav-item" onclick="show('adm-users')">🛡 Admin</button>
+
+      <div class="nav-section">Eventos</div>
+      <button class="nav-item" onclick="show('events')">📅 Eventos</button>
+
+      <div class="nav-section">Equipos</div>
+      <button class="nav-item" onclick="show('teams')">👥 Equipos</button>
+      <button class="nav-item" onclick="show('leaderboard')">🏆 Leaderboard</button>
+
+      <div class="nav-section">Challenges</div>
+      <button class="nav-item" onclick="show('challenges')">🧩 Challenges</button>
+      <button class="nav-item" onclick="show('flags')">🚩 Flags & Submit</button>
+    </aside>
+
+    <main>
+
+      <!-- ─ HEALTH ─────────────────────────────────────────────────────────── -->
+      <div class="panel active" id="p-health">
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/healthz/live — Liveness</div>
+          <div class="brow"><button class="btn bp" onclick="go('GET','/api/health/live',null,'r-live')">Ping
+              live</button></div>
+          <div class="res-wrap" id="r-live"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/healthz/ready — Readiness (DB)</div>
+          <div class="brow"><button class="btn bp" onclick="go('GET','/api/health/ready',null,'r-ready')">Ping
+              ready</button></div>
+          <div class="res-wrap" id="r-ready"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/health — Legacy</div>
+          <div class="brow"><button class="btn bg2" onclick="go('GET','/api/health',null,'r-health')">Ping
+              legacy</button></div>
+          <div class="res-wrap" id="r-health"></div>
+        </div>
+      </div>
+
+      <!-- ─ AUTH ──────────────────────────────────────────────────────────── -->
+      <div class="panel" id="p-auth">
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>/auth/register</div>
+          <div class="row3">
+            <div class="fg"><label>Username</label><input id="ru" placeholder="hacker" /></div>
+            <div class="fg"><label>Email</label><input id="re" type="email" placeholder="hacker@ctf.io" /></div>
+            <div class="fg"><label>Contraseña</label><input id="rp" type="password" placeholder="••••••••" /></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST','/api/auth/register',{username:v('ru'),email:v('re'),password:v('rp')},'r-register')">Registrar</button>
+          </div>
+          <div class="res-wrap" id="r-register"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>/auth/refresh — Renovar access token</div>
+          <div class="fg"><label>Refresh Token (se auto-completa desde el último login)</label>
+            <input id="rt-val" placeholder="pega aquí el refresh_token si es necesario" />
+          </div>
+          <div class="brow">
+            <button class="btn bp" onclick="goRefresh()">Renovar token</button>
+          </div>
+          <div class="res-wrap" id="r-refresh"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>/auth/logout — Revocar refresh token</div>
+          <div class="fg"><label>Refresh Token (vacío = usa el de la sesión)</label>
+            <input id="lo-rt" placeholder="opcional — deja vacío para usar el de la sesión" />
+          </div>
+          <div class="brow">
+            <button class="btn bd"
+              onclick="go('POST','/api/auth/logout',{refresh_token:v('lo-rt')||undefined},'r-logout')">Logout</button>
+          </div>
+          <div class="res-wrap" id="r-logout"></div>
+        </div>
+      </div>
+
+      <!-- ─ USERS (perfil propio) ──────────────────────────────────────────── -->
+      <div class="panel" id="p-users">
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/users/{id}</div>
+          <div class="fg"><label>User ID</label><input id="gu" placeholder="uuid" /></div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('GET',`/api/users/${v('gu')}`,null,'r-gu')">Obtener</button></div>
+          <div class="res-wrap" id="r-gu"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>/users/{id}/update</div>
+          <div class="fg"><label>User ID</label><input id="uu-id" placeholder="uuid" /></div>
+          <div class="row2">
+            <div class="fg"><label>Username</label><input id="uu-n" placeholder="nuevo_nombre" /></div>
+            <div class="fg"><label>Email</label><input id="uu-e" type="email" placeholder="nuevo@email.com" /></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST',`/api/users/${v('uu-id')}/update`,{username:v('uu-n'),email:v('uu-e')},'r-uu')">Actualizar</button>
+          </div>
+          <div class="res-wrap" id="r-uu"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>/users/{id}/password</div>
+          <div class="fg"><label>User ID</label><input id="pw-id" placeholder="uuid" /></div>
+          <div class="row2">
+            <div class="fg"><label>Contraseña actual</label><input id="pw-c" type="password" placeholder="••••••••" />
+            </div>
+            <div class="fg"><label>Nueva contraseña</label><input id="pw-n" type="password" placeholder="••••••••" />
+            </div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST',`/api/users/${v('pw-id')}/password`,{current_password:v('pw-c'),new_password:v('pw-n')},'r-pw')">Cambiar</button>
+          </div>
+          <div class="res-wrap" id="r-pw"></div>
+        </div>
+      </div>
+
+      <!-- ─ BÚSQUEDA DE USUARIOS ──────────────────────────────────────────── -->
+      <div class="panel" id="p-user-search">
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/users/search?q= — Búsqueda parcial</div>
+          <div class="fg"><label>Query (parte del username)</label><input id="sq" placeholder="hack" /></div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('GET',`/api/users/search?q=${v('sq')}`,null,'r-sq')">Buscar</button></div>
+          <div class="res-wrap" id="r-sq"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/users/by-username/{username} — Exacto</div>
+          <div class="fg"><label>Username exacto</label><input id="bun" placeholder="hacker123" /></div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('GET',`/api/users/by-username/${v('bun')}`,null,'r-bun')">Obtener</button></div>
+          <div class="res-wrap" id="r-bun"></div>
+        </div>
+      </div>
+
+      <!-- ─ ADMIN USERS ────────────────────────────────────────────────────── -->
+      <div class="panel" id="p-adm-users">
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/users/ — Listar todos (admin, paginado)</div>
+          <div class="row2">
+            <div class="fg"><label>Página</label><input id="ul-p" type="number" placeholder="1" value="1" /></div>
+            <div class="fg"><label>Tamaño</label><input id="ul-s" type="number" placeholder="20" value="20" /></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('GET',`/api/users?page=${v('ul-p')}&size=${v('ul-s')}`,null,'r-ul')">Listar</button></div>
+          <div class="res-wrap" id="r-ul"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>/users/ — Crear usuario (admin)</div>
+          <div class="row3">
+            <div class="fg"><label>Username</label><input id="cu-n" placeholder="nuevo" /></div>
+            <div class="fg"><label>Email</label><input id="cu-e" type="email" placeholder="nuevo@golabs.io" /></div>
+            <div class="fg"><label>Contraseña</label><input id="cu-p" type="password" placeholder="••••••••" /></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST','/api/users',{username:v('cu-n'),email:v('cu-e'),password:v('cu-p')},'r-cu')">Crear</button>
+          </div>
+          <div class="res-wrap" id="r-cu"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>/admin/users/{id}/role</div>
+          <div class="row2">
+            <div class="fg"><label>User ID</label><input id="rl-id" placeholder="uuid" /></div>
+            <div class="fg"><label>Role</label><select id="rl-v">
+                <option value="user">user</option>
+                <option value="admin">admin</option>
+              </select></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST',`/api/admin/users/${v('rl-id')}/role`,{role:v('rl-v')},'r-rl')">Cambiar rol</button>
+          </div>
+          <div class="res-wrap" id="r-rl"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>/admin/users/{id}/points</div>
+          <div class="row2">
+            <div class="fg"><label>User ID</label><input id="pt-id" placeholder="uuid" /></div>
+            <div class="fg"><label>Points</label><input id="pt-v" type="number" placeholder="100" /></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST',`/api/admin/users/${v('pt-id')}/points`,{points:parseInt(v('pt-v'))||0},'r-pt')">Actualizar</button>
+          </div>
+          <div class="res-wrap" id="r-pt"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🔨 Ban / Unban</div>
+          <div class="fg"><label>User ID</label><input id="ban-id" placeholder="uuid" /></div>
+          <div class="brow">
+            <button class="btn bd" onclick="go('POST',`/api/admin/users/${v('ban-id')}/ban`,null,'r-ban')">Ban</button>
+            <button class="btn bg2"
+              onclick="go('POST',`/api/admin/users/${v('ban-id')}/unban`,null,'r-ban')">Unban</button>
+          </div>
+          <div class="res-wrap" id="r-ban"></div>
+        </div>
+      </div>
+
+      <!-- ─ EVENTS ─────────────────────────────────────────────────────────── -->
+      <div class="panel" id="p-events">
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/events — Listar</div>
+          <div class="row2">
+            <div class="fg"><label>Página</label><input id="evl-p" type="number" placeholder="1" value="1" /></div>
+            <div class="fg"><label>Tamaño</label><input id="evl-s" type="number" placeholder="20" value="20" /></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('GET',`/api/events?page=${v('evl-p')}&size=${v('evl-s')}`,null,'r-evl')">Listar</button>
+          </div>
+          <div class="res-wrap" id="r-evl"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/events/{id}</div>
+          <div class="fg"><label>Event ID</label><input id="ev-get-id" placeholder="uuid" /></div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('GET',`/api/events/${v('ev-get-id')}`,null,'r-evg')">Obtener</button></div>
+          <div class="res-wrap" id="r-evg"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>/events — Crear (admin)</div>
+          <div class="row2">
+            <div class="fg"><label>Nombre</label><input id="ev-n" placeholder="CTF 2025" /></div>
+            <div class="fg"><label>Max team size</label><input id="ev-m" type="number" placeholder="4" /></div>
+          </div>
+          <div class="fg"><label>Descripción</label><input id="ev-d" placeholder="Descripción del evento" /></div>
+          <div class="row2">
+            <div class="fg"><label>Starts At (ISO)</label><input id="ev-s" placeholder="2025-06-01T10:00:00Z" /></div>
+            <div class="fg"><label>Ends At (ISO)</label><input id="ev-e" placeholder="2025-06-01T18:00:00Z" /></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST','/api/events',{name:v('ev-n'),description:v('ev-d'),max_team_size:parseInt(v('ev-m'))||2,starts_at:v('ev-s'),ends_at:v('ev-e')},'r-evc')">Crear</button>
+          </div>
+          <div class="res-wrap" id="r-evc"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚡ Transiciones de estado (admin)</div>
+          <div class="fg"><label>Event ID</label><input id="ev-st-id" placeholder="uuid" /></div>
+          <div class="brow">
+            <button class="btn bp" onclick="go('POST',`/api/events/${v('ev-st-id')}/open`,null,'r-evst')">Open</button>
+            <button class="btn bp" style="background:#a78bfa"
+              onclick="go('POST',`/api/events/${v('ev-st-id')}/start`,null,'r-evst')">Start</button>
+            <button class="btn bp" style="background:#64748b"
+              onclick="go('POST',`/api/events/${v('ev-st-id')}/finish`,null,'r-evst')">Finish</button>
+          </div>
+          <div class="res-wrap" id="r-evst"></div>
+        </div>
+      </div>
+
+      <!-- ─ TEAMS ──────────────────────────────────────────────────────────── -->
+      <div class="panel" id="p-teams">
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/events/{event_id}/teams — Listar equipos</div>
+          <div class="fg"><label>Event ID</label><input id="tl-e" placeholder="uuid" /></div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('GET',`/api/events/${v('tl-e')}/teams`,null,'r-tl')">Listar</button></div>
+          <div class="res-wrap" id="r-tl"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/events/{event_id}/teams/{team_id}/members</div>
+          <div class="row2">
+            <div class="fg"><label>Event ID</label><input id="tm-e" placeholder="uuid" /></div>
+            <div class="fg"><label>Team ID</label><input id="tm-t" placeholder="uuid" /></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('GET',`/api/events/${v('tm-e')}/teams/${v('tm-t')}/members`,null,'r-tm')">Ver
+              miembros</button></div>
+          <div class="res-wrap" id="r-tm"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>/events/{event_id}/teams — Crear equipo</div>
+          <div class="row2">
+            <div class="fg"><label>Event ID</label><input id="ct-e" placeholder="uuid" /></div>
+            <div class="fg"><label>Nombre del equipo</label><input id="ct-n" placeholder="Team Null" /></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST',`/api/events/${v('ct-e')}/teams`,{name:v('ct-n')},'r-ct')">Crear equipo</button></div>
+          <div class="res-wrap" id="r-ct"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>/events/{event_id}/teams/join — Unirse con secreto
+          </div>
+          <div class="row2">
+            <div class="fg"><label>Event ID</label><input id="jt-e" placeholder="uuid" /></div>
+            <div class="fg"><label>Join Secret</label><input id="jt-s" placeholder="secreto..." /></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST',`/api/events/${v('jt-e')}/teams/join`,{join_secret:v('jt-s')},'r-jt')">Unirse</button>
+          </div>
+          <div class="res-wrap" id="r-jt"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>Leave / Rotate secret</div>
+          <div class="row2">
+            <div class="fg"><label>Event ID</label><input id="lt-e" placeholder="uuid" /></div>
+            <div class="fg"><label>Team ID</label><input id="lt-t" placeholder="uuid" /></div>
+          </div>
+          <div class="brow">
+            <button class="btn bd"
+              onclick="go('POST',`/api/events/${v('lt-e')}/teams/${v('lt-t')}/leave`,null,'r-lt')">Leave</button>
+            <button class="btn bg2"
+              onclick="go('POST',`/api/events/${v('lt-e')}/teams/${v('lt-t')}/rotate-secret`,null,'r-lt')">Rotar
+              secret</button>
+          </div>
+          <div class="res-wrap" id="r-lt"></div>
+        </div>
+      </div>
+
+      <!-- ─ LEADERBOARD ────────────────────────────────────────────────────── -->
+      <div class="panel" id="p-leaderboard">
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/events/{event_id}/leaderboard</div>
+          <div class="fg"><label>Event ID</label><input id="lb-e" placeholder="uuid" /></div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('GET',`/api/events/${v('lb-e')}/leaderboard`,null,'r-lb')">Ver ranking</button></div>
+          <div class="res-wrap" id="r-lb"></div>
+        </div>
+      </div>
+
+      <!-- ─ CHALLENGES ──────────────────────────────────────────────────────── -->
+      <div class="panel" id="p-challenges">
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/events/{event_id}/challenges — Listar (con filtros)
+          </div>
+          <div class="fg"><label>Event ID</label><input id="lc-e" placeholder="uuid" /></div>
+          <div class="row3">
+            <div class="fg"><label>Categoría (opcional)</label><select id="lc-cat">
+                <option value="">-- todas --</option>
+                <option>web</option>
+                <option>pwn</option>
+                <option>crypto</option>
+                <option>forensics</option>
+                <option>reverse</option>
+                <option>osint</option>
+                <option>misc</option>
+              </select></div>
+            <div class="fg"><label>Dificultad (opcional)</label><select id="lc-dif">
+                <option value="">-- todas --</option>
+                <option>easy</option>
+                <option>medium</option>
+                <option>hard</option>
+              </select></div>
+            <div class="fg" style="display:flex;align-items:flex-end;">
+              <button class="btn bp" style="width:100%"
+                onclick="go('GET',`/api/events/${v('lc-e')}/challenges${buildFilters()}`,null,'r-lc')">Listar</button>
+            </div>
+          </div>
+          <div class="res-wrap" id="r-lc"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge get">GET</span>/events/{event_id}/challenges/{id}</div>
+          <div class="row2">
+            <div class="fg"><label>Event ID</label><input id="gc-e" placeholder="uuid" /></div>
+            <div class="fg"><label>Challenge ID</label><input id="gc-c" placeholder="uuid" /></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('GET',`/api/events/${v('gc-e')}/challenges/${v('gc-c')}`,null,'r-gc')">Obtener</button></div>
+          <div class="res-wrap" id="r-gc"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>Crear challenge (admin)</div>
+          <div class="row2">
+            <div class="fg"><label>Event ID</label><input id="cc-e" placeholder="uuid" /></div>
+            <div class="fg"><label>Título</label><input id="cc-t" placeholder="SQL Injector" /></div>
+          </div>
+          <div class="fg"><label>Descripción</label><textarea id="cc-d"
+              placeholder="Encuentra la flag oculta..."></textarea></div>
+          <div class="row3">
+            <div class="fg"><label>Categoría</label><select id="cc-cat">
+                <option>web</option>
+                <option>pwn</option>
+                <option>crypto</option>
+                <option>forensics</option>
+                <option>reverse</option>
+                <option>osint</option>
+                <option>misc</option>
+              </select></div>
+            <div class="fg"><label>Puntos</label><input id="cc-p" type="number" placeholder="200" /></div>
+            <div class="fg"><label>Dificultad</label><select id="cc-dif">
+                <option>easy</option>
+                <option>medium</option>
+                <option>hard</option>
+              </select></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST',`/api/events/${v('cc-e')}/challenges`,{title:v('cc-t'),description:v('cc-d'),category:v('cc-cat'),points:parseInt(v('cc-p'))||0,difficulty:v('cc-dif')},'r-cc')">Crear</button>
+          </div>
+          <div class="res-wrap" id="r-cc"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge put">PUT</span>Editar challenge (admin)</div>
+          <div class="row2">
+            <div class="fg"><label>Event ID</label><input id="uc-e" placeholder="uuid" /></div>
+            <div class="fg"><label>Challenge ID</label><input id="uc-c" placeholder="uuid" /></div>
+          </div>
+          <div class="fg"><label>Título</label><input id="uc-t" placeholder="Nuevo título" /></div>
+          <div class="fg"><label>Descripción</label><textarea id="uc-d" placeholder="Nueva descripción"></textarea>
+          </div>
+          <div class="row3">
+            <div class="fg"><label>Categoría</label><select id="uc-cat">
+                <option>web</option>
+                <option>pwn</option>
+                <option>crypto</option>
+                <option>forensics</option>
+                <option>reverse</option>
+                <option>osint</option>
+                <option>misc</option>
+              </select></div>
+            <div class="fg"><label>Puntos</label><input id="uc-p" type="number" placeholder="300" /></div>
+            <div class="fg"><label>Dificultad</label><select id="uc-dif">
+                <option>easy</option>
+                <option>medium</option>
+                <option>hard</option>
+              </select></div>
+          </div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('PUT',`/api/events/${v('uc-e')}/challenges/${v('uc-c')}`,{title:v('uc-t'),description:v('uc-d'),category:v('uc-cat'),points:parseInt(v('uc-p'))||0,difficulty:v('uc-dif')},'r-uc')">Actualizar</button>
+          </div>
+          <div class="res-wrap" id="r-uc"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📢 Publicar / Ocultar (admin)</div>
+          <div class="row2">
+            <div class="fg"><label>Event ID</label><input id="pb-e" placeholder="uuid" /></div>
+            <div class="fg"><label>Challenge ID</label><input id="pb-c" placeholder="uuid" /></div>
+          </div>
+          <div class="brow">
+            <button class="btn bp"
+              onclick="go('POST',`/api/events/${v('pb-e')}/challenges/${v('pb-c')}/publish`,null,'r-pb')">Publicar</button>
+            <button class="btn bg2"
+              onclick="go('POST',`/api/events/${v('pb-e')}/challenges/${v('pb-c')}/unpublish`,null,'r-pb')">Ocultar</button>
+          </div>
+          <div class="res-wrap" id="r-pb"></div>
+        </div>
+      </div>
+
+      <!-- ─ FLAGS ──────────────────────────────────────────────────────────── -->
+      <div class="panel" id="p-flags">
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>Subir flag (admin) — se hashea en el servidor
+          </div>
+          <div class="row2">
+            <div class="fg"><label>Event ID</label><input id="sf-e" placeholder="uuid" /></div>
+            <div class="fg"><label>Challenge ID</label><input id="sf-c" placeholder="uuid" /></div>
+          </div>
+          <div class="fg"><label>Flag (texto plano)</label><input id="sf-f" placeholder="CTF{s3cr3t_fl4g_h3r3}" /></div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST',`/api/events/${v('sf-e')}/challenges/${v('sf-c')}/flag`,{flag:v('sf-f')},'r-sf')">Subir
+              flag</button></div>
+          <div class="res-wrap" id="r-sf"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="badge post">POST</span>Submit flag</div>
+          <div class="row2">
+            <div class="fg"><label>Event ID</label><input id="sb-e" placeholder="uuid" /></div>
+            <div class="fg"><label>Challenge ID</label><input id="sb-c" placeholder="uuid" /></div>
+          </div>
+          <div class="fg"><label>Tu intento de flag</label><input id="sb-f" placeholder="CTF{...}" /></div>
+          <div class="brow"><button class="btn bp"
+              onclick="go('POST',`/api/events/${v('sb-e')}/challenges/${v('sb-c')}/submit`,{flag:v('sb-f')},'r-sb')">Enviar</button>
+          </div>
+          <div class="res-wrap" id="r-sb"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    /* ── nav ── */
+    function show(id) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      const panel = document.getElementById('p-' + id);
+      if (panel) panel.classList.add('active');
+      event?.target?.classList.add('active');
+    }
+
+    /* ── challenge filter helper ── */
+    function buildFilters() {
+      const cat = document.getElementById('lc-cat').value;
+      const dif = document.getElementById('lc-dif').value;
+      const parts = [];
+      if (cat) parts.push(`category=${encodeURIComponent(cat)}`);
+      if (dif) parts.push(`difficulty=${encodeURIComponent(dif)}`);
+      return parts.length ? '?' + parts.join('&') : '';
+    }
+
+    /* ── api call ── */
+    async function go(method, path, body, resId) {
+      const resEl = document.getElementById(resId);
+      try {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) opts.body = JSON.stringify(body);
+        const r = await fetch(path, opts);
+        const json = await r.json();
+        showRes(resEl, json.status, json.body);
+      } catch (e) {
+        showRes(resEl, 0, { error: e.message });
+      }
+    }
+
+    function showRes(el, status, body) {
+      const cls = status === 0 || status >= 400 ? 's4xx' : 's2xx';
+      const label = status === 0 ? '⚠ Sin conexión' : `HTTP ${status}`;
+      const content = status === 204 ? '(No Content — éxito)' : JSON.stringify(body, null, 2);
+      el.innerHTML = `<span class="res-status ${cls}">${label}</span><pre>${esc(content)}</pre>`;
+      el.classList.add('show');
+    }
+
+    /* ── refresh helper ── */
+    async function goRefresh() {
+      const token = v('rt-val');
+      const resEl = document.getElementById('r-refresh');
+      try {
+        const r = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: token })
+        });
+        const json = await r.json();
+        showRes(resEl, json.status, json.body);
+        // Auto-rotate: update the input with the new refresh token
+        if (json.status === 200 && json.body?.refresh_token) {
+          document.getElementById('rt-val').value = json.body.refresh_token;
+        }
+      } catch (e) {
+        showRes(resEl, 0, { error: e.message });
+      }
+    }
+
+    function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function v(id) { return document.getElementById(id)?.value ?? ''; }
+  </script>
+</body>
+
+</html>
