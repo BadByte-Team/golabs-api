@@ -1,6 +1,5 @@
 volumes
 .env
-.env.example
 
 docker-compose.yml
 Dockerfile
