@@ -10,17 +10,19 @@ import (
 	authmw "golabs-api/internal/interfaces/http/middleware/auth"
 	"golabs-api/internal/interfaces/http/middleware/ratelimit"
 	userapp "golabs-api/internal/user/application"
+	userdomain "golabs-api/internal/user/domain"
 	userinfra "golabs-api/internal/user/infrastructure"
 )
 
 // RegisterRoutes wires all user and auth routes into the given router.
-// It builds the full dependency graph internally so router.go stays clean.
 func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 	repo := userinfra.NewUserRepository(db)
 
 	// Use cases
 	createUserUC := userapp.NewCreateUserUseCase(repo)
 	getUserByIDUC := userapp.NewGetUserByIDUseCase(repo)
+	getUserByUsernameUC := userapp.NewGetUserByUsernameUseCase(repo)
+	searchByUsernameUC := userapp.NewSearchUserByUsernameUseCase(repo)
 	updateUserUC := userapp.NewUpdateUserUseCase(repo)
 	changePasswordUC := userapp.NewChangePasswordUseCase(repo)
 	updateRoleUC := userapp.NewUpdateUserRoleUseCase(repo)
@@ -32,8 +34,9 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 	// Handlers
 	authHandler := NewAuthHandler(loginUC, createUserUC)
 	userHandler := NewUserHandler(
-		createUserUC, getUserByIDUC, updateUserUC, changePasswordUC,
-		updateRoleUC, updatePointsUC, banUserUC, unbanUserUC,
+		createUserUC, getUserByIDUC, getUserByUsernameUC, searchByUsernameUC,
+		updateUserUC, changePasswordUC, updateRoleUC, updatePointsUC,
+		banUserUC, unbanUserUC,
 	)
 
 	// Public auth routes
@@ -43,22 +46,31 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 		r.Post("/register", authHandler.Register)
 	})
 
-	// Protected routes
+	// Protected routes (authenticated + not banned)
 	r.Group(func(r chi.Router) {
 		r.Use(authmw.JWTAuth(jwtSvc))
-		r.Use(authmw.LoadUser(repo))
+		r.Use(authmw.LoadUser(repo)) // loads Banned flag and fresh Role from DB
 		r.Use(accessmw.RequireNotBanned)
 		r.Use(ratelimit.UserRateLimit)
 
 		r.Route("/users", func(r chi.Router) {
-			r.With(accessmw.RequireRole("admin")).Post("/", userHandler.Create)
+			// Admin: create user
+			r.With(accessmw.RequireRole(userdomain.RoleAdmin)).Post("/", userHandler.Create)
+
+			// Search: GET /users/search?q=<query>
+			r.Get("/search", userHandler.Search)
+
+			// Exact username lookup: GET /users/by-username/{username}
+			r.Get("/by-username/{username}", userHandler.GetByUsername)
+
+			// By ID
 			r.Get("/{id}", userHandler.GetByID)
 			r.With(accessmw.RequireSelfOrAdmin).Post("/{id}/update", userHandler.Update)
 			r.With(accessmw.RequireSelfOrAdmin).Post("/{id}/password", userHandler.ChangePassword)
 		})
 
 		r.Route("/admin/users", func(r chi.Router) {
-			r.Use(accessmw.RequireRole("admin"))
+			r.Use(accessmw.RequireRole(userdomain.RoleAdmin))
 			r.Post("/{id}/role", userHandler.UpdateRole)
 			r.Post("/{id}/points", userHandler.UpdatePoints)
 			r.Post("/{id}/ban", userHandler.Ban)

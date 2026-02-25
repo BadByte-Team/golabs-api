@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	authmw "golabs-api/internal/interfaces/http/middleware/auth"
+	userdomain "golabs-api/internal/user/domain"
 )
 
 // RequireSelfOrAdmin allows access only to the resource owner or an admin.
@@ -23,7 +24,7 @@ func RequireSelfOrAdmin(next http.Handler) http.Handler {
 			return
 		}
 
-		if user.Role == "admin" {
+		if user.Role == userdomain.RoleAdmin {
 			next.ServeHTTP(w, r)
 			return
 		}

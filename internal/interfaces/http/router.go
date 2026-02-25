@@ -9,6 +9,10 @@ import (
 	"golabs-api/internal/health"
 	"golabs-api/internal/infrastructure/security"
 	authmw "golabs-api/internal/interfaces/http/middleware/auth"
+
+	challengehttp "golabs-api/internal/challenges/interfaces"
+	eventhttp "golabs-api/internal/event/interfaces"
+	eventteamhttp "golabs-api/internal/eventteam/interfaces"
 	userhttp "golabs-api/internal/user/interfaces"
 )
 
@@ -27,8 +31,17 @@ func NewRouter(db *sql.DB) *chi.Mux {
 		panic("JWT no configurado: " + err.Error())
 	}
 
-	// Registrar todas las rutas del dominio user (incluye /auth y /users)
+	// Usuarios + Auth
 	userhttp.RegisterRoutes(r, db, jwtSvc)
+
+	// Eventos
+	eventhttp.RegisterRoutes(r, db, jwtSvc)
+
+	// Equipos de evento
+	eventteamhttp.RegisterRoutes(r, db, jwtSvc)
+
+	// Challenges y Flags
+	challengehttp.RegisterRoutes(r, db, jwtSvc)
 
 	return r
 }

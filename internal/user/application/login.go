@@ -2,6 +2,7 @@ package userapp
 
 import (
 	"errors"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -18,9 +19,22 @@ func NewLoginUseCase(repo userdomain.UserRepository, jwt *security.JWTService) *
 	return &LoginUseCase{repo: repo, jwt: jwt}
 }
 
-func (uc *LoginUseCase) Execute(email, password string) (string, error) {
-	user, err := uc.repo.GetByEmail(email)
+// Execute accepts either an email address or a username in the `identifier` field.
+func (uc *LoginUseCase) Execute(identifier, password string) (string, error) {
+	var (
+		user *userdomain.User
+		err  error
+	)
+
+	// Determine lookup strategy: email addresses contain "@".
+	if strings.Contains(identifier, "@") {
+		user, err = uc.repo.GetByEmail(identifier)
+	} else {
+		user, err = uc.repo.GetByUsername(identifier)
+	}
+
 	if err != nil {
+		// Generic error — do not reveal whether email/username exists.
 		return "", errors.New("credenciales inválidas")
 	}
 

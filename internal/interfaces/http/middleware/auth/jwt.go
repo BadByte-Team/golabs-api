@@ -32,7 +32,9 @@ func JWTAuth(jwtSvc *security.JWTService) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := WithUser(r.Context(), UserContext{UserID: userID})
+			role, _ := claims["role"].(string)
+
+			ctx := WithUser(r.Context(), UserContext{UserID: userID, Role: role})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"golabs-api/internal/apperrors"
 	userapp "golabs-api/internal/user/application"
 )
 
@@ -18,36 +19,36 @@ func NewAuthHandler(login *userapp.LoginUseCase, createUser *userapp.CreateUserU
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "json inválido", http.StatusBadRequest)
+	if err := decodeJSON(r, &req); err != nil {
+		apperrors.RespondError(w, apperrors.ErrBadRequest)
 		return
 	}
-	token, err := h.login.Execute(req.Email, req.Password)
+	// Identifier can be either an email address or a username.
+	token, err := h.login.Execute(req.Identifier, req.Password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		apperrors.RespondError(w, err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(LoginResponse{Token: token})
+	apperrors.RespondJSON(w, http.StatusOK, LoginResponse{Token: token})
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req CreateUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "json inválido", http.StatusBadRequest)
+	if err := decodeJSON(r, &req); err != nil {
+		apperrors.RespondError(w, apperrors.ErrBadRequest)
 		return
 	}
 	user, err := h.createUser.Execute(req.Username, req.Email, req.Password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		apperrors.RespondError(w, err)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(UserResponse{
-		ID:       user.ID.String(),
-		Username: user.Username,
-		Email:    user.Email,
-		Role:     user.Role,
-		Points:   user.Points,
-	})
+	apperrors.RespondJSON(w, http.StatusCreated, mapUser(user))
+}
+
+/* -------- helpers -------- */
+
+// decodeJSON is a shared helper to decode a JSON request body.
+func decodeJSON(r *http.Request, v any) error {
+	return json.NewDecoder(r.Body).Decode(v)
 }

@@ -48,13 +48,14 @@ func NewMySQL() (*sql.DB, error) {
 
 func waitForDB(db *sql.DB) error {
 	timeout := time.After(30 * time.Second)
-	tick := time.Tick(2 * time.Second)
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-timeout:
 			return fmt.Errorf("timeout esperando conexión a DB")
-		case <-tick:
+		case <-ticker.C:
 			if err := db.Ping(); err == nil {
 				return nil
 			}

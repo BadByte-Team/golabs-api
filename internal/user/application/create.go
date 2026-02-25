@@ -2,9 +2,12 @@ package userapp
 
 import (
 	"errors"
+	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
 
+	"golabs-api/internal/apperrors"
+	"golabs-api/internal/infrastructure/security"
 	userdomain "golabs-api/internal/user/domain"
 )
 
@@ -27,11 +30,17 @@ func (uc *CreateUserUseCase) Execute(username, email, password string) (*userdom
 		return nil, errors.New("password is required")
 	}
 
+	// Enforce unique email
 	if _, err := uc.repo.GetByEmail(email); err == nil {
-		return nil, errors.New("email is already in use")
+		return nil, fmt.Errorf("%w: email already in use", apperrors.ErrConflict)
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), 12)
+	// Enforce unique username
+	if _, err := uc.repo.GetByUsername(username); err == nil {
+		return nil, fmt.Errorf("%w: username already in use", apperrors.ErrConflict)
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), security.BcryptCost)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +49,7 @@ func (uc *CreateUserUseCase) Execute(username, email, password string) (*userdom
 		Username:     username,
 		Email:        email,
 		PasswordHash: string(hash),
-		Role:         "user",
+		Role:         userdomain.RoleUser,
 		Points:       0,
 	}
 

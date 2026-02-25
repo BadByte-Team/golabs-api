@@ -4,8 +4,8 @@ import "time"
 
 // Auth
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Identifier string `json:"identifier"` // email address or username
+	Password   string `json:"password"`
 }
 
 type LoginResponse struct {

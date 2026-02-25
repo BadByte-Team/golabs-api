@@ -4,6 +4,10 @@ type UserRepository interface {
 	Create(user *User) error
 	GetByID(id string) (*User, error)
 	GetByEmail(email string) (*User, error)
+	GetByUsername(username string) (*User, error)
+
+	// SearchByUsername returns users whose username contains the query string (case-insensitive).
+	SearchByUsername(query string) ([]*User, error)
 
 	Update(user *User) error
 	UpdatePassword(userID string, passwordHash string) error
