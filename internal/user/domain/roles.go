@@ -1,7 +1,9 @@
+// Package userdomain define el modelo de dominio, las interfaces de repositorio y las constantes del modulo de usuarios.
 package userdomain
 
-// User role constants — use these everywhere instead of raw string literals
-// to prevent typos and make refactoring safe.
+// Roles de usuario disponibles en el sistema.
+// Usar siempre estas constantes en lugar de strings literales
+// para evitar errores tipograficos y facilitar el refactoring.
 const (
 	RoleAdmin = "admin"
 	RoleUser  = "user"

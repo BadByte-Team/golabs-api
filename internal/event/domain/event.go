@@ -1,3 +1,6 @@
+// Package domain define los tipos de dominio del modulo de eventos CTF,
+// incluyendo el modelo Event, sus estados posibles y las reglas de negocio
+// que controlan las transiciones de estado.
 package domain
 
 import (
@@ -7,20 +10,22 @@ import (
 	"github.com/google/uuid"
 )
 
+// EventStatus representa el Estado de ciclo de vida de un evento.
 type EventStatus string
 
 const (
-	EventDraft    EventStatus = "draft"
-	EventOpen     EventStatus = "open"
-	EventRunning  EventStatus = "running"
-	EventFinished EventStatus = "finished"
+	EventDraft    EventStatus = "draft"    // creado pero no abierto a inscripciones
+	EventOpen     EventStatus = "open"     // aceptando equipos; aun no ha comenzado
+	EventRunning  EventStatus = "running"  // en curso; se pueden enviar flags
+	EventFinished EventStatus = "finished" // finalizado; no se aceptan mas submissions
 )
 
+// Event representa un evento CTF con sus fechas, estado y restricciones de equipo.
 type Event struct {
 	ID          uuid.UUID
 	Name        string
 	Description string
-	MaxTeamSize int
+	MaxTeamSize int // numero maximo de miembros por equipo
 	Status      EventStatus
 	StartsAt    time.Time
 	EndsAt      time.Time
@@ -28,7 +33,14 @@ type Event struct {
 	UpdatedAt   time.Time
 }
 
-// Constructor (reglas mínimas)
+// NewEvent crea un Event en estado draft aplicando las reglas minimas de validacion.
+//
+// Reglas:
+//   - name es obligatorio.
+//   - maxTeamSize debe ser mayor que cero.
+//   - endsAt debe ser posterior a startsAt.
+//
+// Retorna error si alguna regla se viola.
 func NewEvent(
 	name string,
 	description string,
@@ -37,15 +49,15 @@ func NewEvent(
 ) (*Event, error) {
 
 	if name == "" {
-		return nil, errors.New("event name requerido")
+		return nil, errors.New("el nombre del evento es requerido")
 	}
 
 	if maxTeamSize <= 0 {
-		return nil, errors.New("maxTeamSize inválido")
+		return nil, errors.New("maxTeamSize debe ser mayor que cero")
 	}
 
 	if endsAt.Before(startsAt) {
-		return nil, errors.New("fechas inválidas")
+		return nil, errors.New("la fecha de fin debe ser posterior a la fecha de inicio")
 	}
 
 	now := time.Now()
@@ -63,35 +75,40 @@ func NewEvent(
 	}, nil
 }
 
-// Reglas de negocio
-
+// Open transiciona el evento de draft a open para aceptar inscripciones de equipos.
+// Retorna error si el evento no esta en estado draft.
 func (e *Event) Open() error {
 	if e.Status != EventDraft {
-		return errors.New("solo eventos en draft pueden abrirse")
+		return errors.New("solo eventos en estado draft pueden abrirse")
 	}
 	e.Status = EventOpen
 	e.UpdatedAt = time.Now()
 	return nil
 }
 
+// Start transiciona el evento de open a running para iniciar la competencia.
+// Retorna error si el evento no esta en estado open.
 func (e *Event) Start() error {
 	if e.Status != EventOpen {
-		return errors.New("evento no está abierto")
+		return errors.New("el evento debe estar en estado open para iniciar")
 	}
 	e.Status = EventRunning
 	e.UpdatedAt = time.Now()
 	return nil
 }
 
+// Finish transiciona el evento de running a finished para cerrar la competencia.
+// Retorna error si el evento no esta en estado running.
 func (e *Event) Finish() error {
 	if e.Status != EventRunning {
-		return errors.New("evento no está en curso")
+		return errors.New("el evento debe estar en curso para poder finalizarlo")
 	}
 	e.Status = EventFinished
 	e.UpdatedAt = time.Now()
 	return nil
 }
 
+// IsOpen retorna true si el evento acepta inscripciones de nuevos equipos.
 func (e *Event) IsOpen() bool {
 	return e.Status == EventOpen
 }

@@ -1,3 +1,4 @@
+// Package refreshtokeninfra implementa la persistencia de refresh tokens en MySQL/MariaDB.
 package refreshtokeninfra
 
 import (
@@ -13,23 +14,27 @@ import (
 	refreshtokendomain "golabs-api/internal/refreshtoken/domain"
 )
 
-// MySQLRefreshTokenRepository implements RefreshTokenRepository using MySQL/MariaDB.
+// MySQLRefreshTokenRepository implementa RefreshTokenRepository usando MySQL/MariaDB.
 type MySQLRefreshTokenRepository struct {
 	db *sql.DB
 }
 
-// New creates a new MySQLRefreshTokenRepository.
+// New crea un nuevo MySQLRefreshTokenRepository con la conexion de base de datos indicada.
 func New(db *sql.DB) *MySQLRefreshTokenRepository {
 	return &MySQLRefreshTokenRepository{db: db}
 }
 
-// HashToken returns the SHA-256 hex of a raw token string.
+// HashToken calcula el digest SHA-256 del token crudo y lo retorna como string hexadecimal.
+// Esta funcion es el punto unico donde se hashean tokens en todo el modulo.
+// Entrada:  raw, valor del token en texto plano.
+// Salida:   string hexadecimal de 64 caracteres con el SHA-256 del token.
 func HashToken(raw string) string {
 	h := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(h[:])
 }
 
-// Save inserts a new refresh token row.
+// Save inserta un nuevo refresh token en la tabla refresh_tokens.
+// El campo revoked_at no se inserta (queda NULL hasta que sea revocado).
 func (r *MySQLRefreshTokenRepository) Save(ctx context.Context, rt *refreshtokendomain.RefreshToken) error {
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at)
@@ -43,7 +48,8 @@ func (r *MySQLRefreshTokenRepository) Save(ctx context.Context, rt *refreshtoken
 	return nil
 }
 
-// GetByTokenHash fetches a refresh token by its SHA-256 hash.
+// GetByTokenHash busca un refresh token por su hash SHA-256.
+// Retorna error si no existe ningun token con ese hash.
 func (r *MySQLRefreshTokenRepository) GetByTokenHash(ctx context.Context, hash string) (*refreshtokendomain.RefreshToken, error) {
 	row := r.db.QueryRowContext(ctx,
 		`SELECT id, user_id, token_hash, expires_at, created_at, revoked_at
@@ -53,7 +59,8 @@ func (r *MySQLRefreshTokenRepository) GetByTokenHash(ctx context.Context, hash s
 	return scanRefreshToken(row)
 }
 
-// Revoke sets revoked_at = NOW() for the given token ID.
+// Revoke marca el token identificado por id como revocado estableciendo revoked_at = NOW().
+// Una vez revocado, el token no puede volver a ser usado.
 func (r *MySQLRefreshTokenRepository) Revoke(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE refresh_tokens SET revoked_at = ? WHERE id = ?`,
@@ -65,7 +72,8 @@ func (r *MySQLRefreshTokenRepository) Revoke(ctx context.Context, id uuid.UUID) 
 	return nil
 }
 
-// RevokeAllForUser revokes all non-revoked tokens for a user.
+// RevokeAllForUser revoca todos los tokens activos (revoked_at IS NULL) del usuario indicado.
+// Se usa al cambiar contrasena o al detectar actividad sospechosa para cerrar todas las sesiones.
 func (r *MySQLRefreshTokenRepository) RevokeAllForUser(ctx context.Context, userID uuid.UUID) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE refresh_tokens SET revoked_at = ?
@@ -78,8 +86,8 @@ func (r *MySQLRefreshTokenRepository) RevokeAllForUser(ctx context.Context, user
 	return nil
 }
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-
+// scanRefreshToken mapea una fila SQL a un RefreshToken.
+// Parsea los UUID de string a uuid.UUID y maneja el campo nullable revoked_at.
 func scanRefreshToken(row *sql.Row) (*refreshtokendomain.RefreshToken, error) {
 	var rt refreshtokendomain.RefreshToken
 	var idStr, userIDStr string

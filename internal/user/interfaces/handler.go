@@ -1,3 +1,5 @@
+// Package userhttp implementa los handlers HTTP del modulo de usuarios
+// y el registro de sus rutas en el router principal.
 package userhttp
 
 import (
@@ -11,6 +13,8 @@ import (
 	userdomain "golabs-api/internal/user/domain"
 )
 
+// UserHandler agrupa los handlers HTTP del modulo de usuarios (autenticados).
+// Los endpoints publicos de autenticacion se manejan en AuthHandler.
 type UserHandler struct {
 	createUser        *userapp.CreateUserUseCase
 	getUserByID       *userapp.GetUserByIDUseCase
@@ -25,6 +29,7 @@ type UserHandler struct {
 	unbanUser         *userapp.UnbanUserUseCase
 }
 
+// NewUserHandler inyecta todas las dependencias del UserHandler.
 func NewUserHandler(
 	createUser *userapp.CreateUserUseCase,
 	getUserByID *userapp.GetUserByIDUseCase,
@@ -53,7 +58,9 @@ func NewUserHandler(
 	}
 }
 
-// List handles GET /users/ (admin only)
+// List godoc — GET /api/v1/users (admin)
+// Retorna la lista paginada de todos los usuarios del sistema.
+// Exito: 200 pagination.Response[UserResponse]
 func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 	pg := pagination.Parse(r)
 	users, total, err := h.listUsers.Execute(pg.Number, pg.Size)
@@ -69,6 +76,9 @@ func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, pagination.New(resp, pg, total))
 }
 
+// Create godoc — POST /api/v1/users (admin)
+// Crea un usuario directamente (sin verificacion de email). Igual que /auth/register pero para admins.
+// Body: CreateUserRequest | Exito: 201 UserResponse
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req CreateUserRequest
 	if err := decodeJSON(r, &req); err != nil {
@@ -83,6 +93,9 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusCreated, mapUser(user))
 }
 
+// GetByID godoc — GET /api/v1/users/{id}
+// Retorna el perfil de un usuario por su UUID.
+// Exito: 200 UserResponse | Error: 404 si no existe
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
@@ -97,7 +110,9 @@ func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, mapUser(user))
 }
 
-// GetByUsername handles GET /users/by-username/{username}
+// GetByUsername godoc — GET /api/v1/users/by-username/{username}
+// Retorna el perfil de un usuario por su username exacto.
+// Exito: 200 UserResponse | Error: 404 si no existe
 func (h *UserHandler) GetByUsername(w http.ResponseWriter, r *http.Request) {
 	username := chi.URLParam(r, "username")
 	if username == "" {
@@ -112,7 +127,9 @@ func (h *UserHandler) GetByUsername(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, mapUser(user))
 }
 
-// Search handles GET /users/search?q=<query>
+// Search godoc — GET /api/v1/users/search?q=<query>
+// Busca usuarios cuyo username contenga el termino de busqueda (coincidencia parcial).
+// Exito: 200 []UserResponse
 func (h *UserHandler) Search(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	if q == "" {
@@ -131,6 +148,9 @@ func (h *UserHandler) Search(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, resp)
 }
 
+// Update godoc — PATCH /api/v1/users/{id}
+// Actualiza username y/o email del usuario (patch semantics).
+// Body: UpdateUserRequest | Exito: 200 UserResponse
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var req UpdateUserRequest
@@ -146,6 +166,9 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, mapUser(user))
 }
 
+// ChangePassword godoc — PUT /api/v1/users/{id}/password
+// Cambia la contrasena del usuario verificando la actual primero.
+// Body: ChangePasswordRequest | Exito: 204 No Content
 func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var req ChangePasswordRequest
@@ -160,6 +183,9 @@ func (h *UserHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// UpdateRole godoc — PUT /api/v1/users/{id}/role (admin)
+// Cambia el rol del usuario entre "user" y "admin".
+// Body: { "role": "admin"|"user" } | Exito: 204 No Content
 func (h *UserHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var req UpdateUserRoleRequest
@@ -174,6 +200,9 @@ func (h *UserHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// UpdatePoints godoc — PUT /api/v1/users/{id}/points (admin)
+// Establece los puntos del usuario directamente.
+// Body: { "points": int } | Exito: 204 No Content
 func (h *UserHandler) UpdatePoints(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var req UpdateUserPointsRequest
@@ -188,6 +217,9 @@ func (h *UserHandler) UpdatePoints(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// Ban godoc — POST /api/v1/users/{id}/ban (admin)
+// Suspende el acceso del usuario.
+// Exito: 200 { "banned": true }
 func (h *UserHandler) Ban(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := h.banUser.Execute(id); err != nil {
@@ -197,6 +229,9 @@ func (h *UserHandler) Ban(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, BanUserResponse{Banned: true})
 }
 
+// Unban godoc — POST /api/v1/users/{id}/unban (admin)
+// Reactiva el acceso de un usuario baneado.
+// Exito: 200 { "banned": false }
 func (h *UserHandler) Unban(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := h.unbanUser.Execute(id); err != nil {
@@ -206,8 +241,7 @@ func (h *UserHandler) Unban(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, BanUserResponse{Banned: false})
 }
 
-/* -------- helpers -------- */
-
+// mapUser convierte un User de dominio a su representacion JSON para la API.
 func mapUser(u *userdomain.User) UserResponse {
 	return UserResponse{
 		ID:        u.ID.String(),

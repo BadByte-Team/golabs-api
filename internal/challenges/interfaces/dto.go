@@ -1,9 +1,9 @@
+// Package interfaces implementa los handlers HTTP y el registro de rutas del modulo de challenges.
 package interfaces
 
 import "time"
 
-/* ── Challenge ─────────────────────────────────────────────────────────── */
-
+// CreateChallengeRequest es el body para crear un nuevo challenge en un evento (admin only).
 type CreateChallengeRequest struct {
 	Title       string `json:"title"       validate:"required,max=120"`
 	Description string `json:"description" validate:"required,max=2000"`
@@ -12,6 +12,7 @@ type CreateChallengeRequest struct {
 	Difficulty  string `json:"difficulty"  validate:"required,oneof=easy medium hard"`
 }
 
+// UpdateChallengeRequest es el body para actualizar un challenge existente (admin only).
 type UpdateChallengeRequest struct {
 	Title       string `json:"title"       validate:"required,max=120"`
 	Description string `json:"description" validate:"required,max=2000"`
@@ -20,6 +21,8 @@ type UpdateChallengeRequest struct {
 	Difficulty  string `json:"difficulty"  validate:"required,oneof=easy medium hard"`
 }
 
+// ChallengeResponse es la representacion JSON de un challenge para la API.
+// SolveCount y FirstBloodTeamID son nulos cuando se retorna un challenge sin estadisticas.
 type ChallengeResponse struct {
 	ID               string    `json:"id"`
 	EventID          string    `json:"event_id"`
@@ -35,26 +38,25 @@ type ChallengeResponse struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
-/* ── Flag ──────────────────────────────────────────────────────────────── */
-
-// SetFlagRequest is only sent by admins; the plain-text is hashed server-side.
+// SetFlagRequest es el body para establecer la flag de un challenge (admin only).
+// El texto plano se hashea en el servidor; nunca se almacena en claro.
 type SetFlagRequest struct {
 	Flag string `json:"flag" validate:"required,min=1"`
 }
 
-/* ── Submit ────────────────────────────────────────────────────────────── */
-
+// SubmitFlagRequest es el body para enviar una flag (participants).
 type SubmitFlagRequest struct {
 	Flag string `json:"flag" validate:"required"`
 }
 
+// SubmitFlagResponse indica si la flag fue correcta y cuantos puntos se otorgaron.
+// Points es 0 si la flag fue incorrecta o si el equipo ya habia resuelto el challenge.
 type SubmitFlagResponse struct {
 	Correct bool `json:"correct"`
 	Points  int  `json:"points,omitempty"`
 }
 
-/* ── Solve ─────────────────────────────────────────────────────────────── */
-
+// SolveResponse es la representacion JSON de un solve (resolucion de challenge por un equipo).
 type SolveResponse struct {
 	ChallengeID string    `json:"challenge_id"`
 	TeamID      string    `json:"event_team_id"`

@@ -1,3 +1,4 @@
+// Package interfaces implementa los handlers HTTP y el registro de rutas del modulo de eventos.
 package interfaces
 
 import (
@@ -14,11 +15,24 @@ import (
 	authmw "golabs-api/internal/interfaces/http/middleware/auth"
 )
 
-// RegisterRoutes wires all event routes.
+// RegisterRoutes registra todas las rutas del modulo de eventos en el router dado.
+//
+// Rutas publicas (sin autenticacion):
+//   - GET /events/        lista de eventos (paginada)
+//   - GET /events/{id}    detalle de un evento
+//
+// Rutas de admin (requieren JWT + rol "admin"):
+//   - POST /events/              crear evento (estado inicial: draft)
+//   - POST /events/{id}/open     transicion draft -> open
+//   - POST /events/{id}/start    transicion open  -> running
+//   - POST /events/{id}/finish   transicion running -> finished
+//
+// Nota: las rutas de admin usan JWTAuth sin LoadUser ya que el rol viene del token,
+// evitando una consulta adicional a BD por peticion.
 func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 	repo := eventinfra.NewEventRepository(db)
 
-	// Use cases
+	// Instanciar use cases.
 	createUC := eventapp.NewCreateEventUseCase(repo)
 	getUC := eventapp.NewGetEventByIDUseCase(repo)
 	listUC := eventapp.NewListEventsUseCase(repo)
@@ -26,7 +40,7 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 	startUC := eventapp.NewStartEventUseCase(repo)
 	finishUC := eventapp.NewFinishEventUseCase(repo)
 
-	// Handler
+	// Instanciar handler.
 	handler := NewEventHandler(
 		createUC,
 		getUC,
@@ -38,11 +52,11 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 
 	r.Route("/events", func(r chi.Router) {
 
+		// Rutas publicas: no requieren autenticacion.
 		r.Get("/", handler.List)
 		r.Get("/{event_id}", handler.GetByID)
 
-		// Admin-only: JWTAuth already puts the role from the token into context,
-		// so we don't need LoadUser here — saving a DB round-trip per request.
+		// Rutas de admin: JWTAuth es suficiente (el rol viene del token, sin LoadUser).
 		r.Group(func(r chi.Router) {
 			r.Use(authmw.JWTAuth(jwtSvc))
 			r.Use(accessmw.RequireRole(userdomain.RoleAdmin))

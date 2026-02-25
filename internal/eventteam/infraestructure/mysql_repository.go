@@ -1,3 +1,4 @@
+// Package infrastructure implementa el repositorio de equipos por evento usando MySQL/MariaDB.
 package infrastructure
 
 import (
@@ -10,16 +11,19 @@ import (
 	teamdomain "golabs-api/internal/eventteam/domain"
 )
 
+// MySQLEventTeamRepository implementa teamdomain.Repository usando MySQL/MariaDB.
 type MySQLEventTeamRepository struct {
 	db *sql.DB
 }
 
+// NewEventTeamRepository crea una instancia de MySQLEventTeamRepository.
+// Retorna la interfaz teamdomain.Repository para desacoplar del tipo concreto.
 func NewEventTeamRepository(db *sql.DB) teamdomain.Repository {
 	return &MySQLEventTeamRepository{db: db}
 }
 
-/* ---------- teams ---------- */
-
+// SaveTeam inserta un nuevo equipo en la tabla event_teams.
+// Establece created_at y updated_at en UTC al momento de la insercion.
 func (r *MySQLEventTeamRepository) SaveTeam(team *teamdomain.EventTeam) error {
 	query := `
 		INSERT INTO event_teams (
@@ -51,7 +55,8 @@ func (r *MySQLEventTeamRepository) SaveTeam(team *teamdomain.EventTeam) error {
 	return err
 }
 
-// UpdateTeam persists changes to an existing team (e.g. rotated join secret hash).
+// UpdateTeam persiste los cambios en un equipo existente (por ejemplo, rotacion del join secret).
+// Actualiza automaticamente el campo updated_at.
 func (r *MySQLEventTeamRepository) UpdateTeam(team *teamdomain.EventTeam) error {
 	query := `
 		UPDATE event_teams
@@ -78,6 +83,7 @@ func (r *MySQLEventTeamRepository) UpdateTeam(team *teamdomain.EventTeam) error 
 	return err
 }
 
+// GetTeamByID busca un equipo por su UUID.
 func (r *MySQLEventTeamRepository) GetTeamByID(id uuid.UUID) (*teamdomain.EventTeam, error) {
 	query := `
 		SELECT id, event_id, name, join_secret_hash,
@@ -96,6 +102,8 @@ func (r *MySQLEventTeamRepository) GetTeamByID(id uuid.UUID) (*teamdomain.EventT
 	return scanTeam(smt.QueryRow(id.String()))
 }
 
+// GetTeamByName busca un equipo por su nombre dentro de un evento especifico.
+// Usado para validar join secret al unirse a un equipo.
 func (r *MySQLEventTeamRepository) GetTeamByName(eventID uuid.UUID, name string) (*teamdomain.EventTeam, error) {
 	query := `
 		SELECT id, event_id, name, join_secret_hash,
@@ -114,8 +122,8 @@ func (r *MySQLEventTeamRepository) GetTeamByName(eventID uuid.UUID, name string)
 	return scanTeam(smt.QueryRow(eventID.String(), name))
 }
 
-/* ---------- members ---------- */
-
+// AddMember inserta un nuevo miembro en la tabla event_team_members.
+// Si JoinedAt es zero, se usa el tiempo actual en UTC.
 func (r *MySQLEventTeamRepository) AddMember(member *teamdomain.EventTeamMember) error {
 	query := `
 		INSERT INTO event_team_members (
@@ -123,7 +131,7 @@ func (r *MySQLEventTeamRepository) AddMember(member *teamdomain.EventTeamMember)
 		) VALUES (?, ?, ?, ?)
 	`
 
-	// Use the JoinedAt from the domain object; default to now if zero.
+	// Usar el JoinedAt del objeto de dominio; default a now si no fue inicializado.
 	joinedAt := member.JoinedAt
 	if joinedAt.IsZero() {
 		joinedAt = time.Now().UTC()
@@ -145,6 +153,7 @@ func (r *MySQLEventTeamRepository) AddMember(member *teamdomain.EventTeamMember)
 	return err
 }
 
+// RemoveMember elimina a un miembro del equipo.
 func (r *MySQLEventTeamRepository) RemoveMember(teamID, userID uuid.UUID) error {
 	query := `
 		DELETE FROM event_team_members
@@ -161,6 +170,7 @@ func (r *MySQLEventTeamRepository) RemoveMember(teamID, userID uuid.UUID) error 
 	return err
 }
 
+// ListMembers retorna todos los miembros de un equipo.
 func (r *MySQLEventTeamRepository) ListMembers(teamID uuid.UUID) ([]*teamdomain.EventTeamMember, error) {
 	query := `
 		SELECT event_team_id, user_id, role, joined_at
@@ -210,6 +220,8 @@ func (r *MySQLEventTeamRepository) ListMembers(teamID uuid.UUID) ([]*teamdomain.
 	return members, nil
 }
 
+// CountMembers retorna el numero de miembros activos en el equipo.
+// Usado para validar si el equipo tiene espacio antes de agregar un nuevo miembro.
 func (r *MySQLEventTeamRepository) CountMembers(teamID uuid.UUID) (int, error) {
 	query := `
 		SELECT COUNT(*) FROM event_team_members
@@ -221,6 +233,8 @@ func (r *MySQLEventTeamRepository) CountMembers(teamID uuid.UUID) (int, error) {
 	return count, err
 }
 
+// IsUserInEvent verifica si el usuario ya pertenece a algun equipo en el evento.
+// Usa un JOIN entre event_team_members y event_teams para la verificacion.
 func (r *MySQLEventTeamRepository) IsUserInEvent(eventID, userID uuid.UUID) (bool, error) {
 	query := `
 		SELECT COUNT(*)
@@ -239,6 +253,8 @@ func (r *MySQLEventTeamRepository) IsUserInEvent(eventID, userID uuid.UUID) (boo
 	return count > 0, err
 }
 
+// ListTeamsByEvent retorna todos los equipos de un evento ordenados por puntaje descendente.
+// El orden por score DESC es el que determina el ranking del leaderboard.
 func (r *MySQLEventTeamRepository) ListTeamsByEvent(eventID uuid.UUID) ([]*teamdomain.EventTeam, error) {
 	query := `
 		SELECT id, event_id, name, join_secret_hash,
@@ -274,6 +290,8 @@ func (r *MySQLEventTeamRepository) ListTeamsByEvent(eventID uuid.UUID) ([]*teamd
 	return teams, rows.Err()
 }
 
+// ListMembersWithUsername retorna los miembros de un equipo enriquecidos con el username de cada usuario.
+// Realiza un JOIN con la tabla users para resolver el username en una sola consulta.
 func (r *MySQLEventTeamRepository) ListMembersWithUsername(teamID uuid.UUID) ([]*teamdomain.MemberWithUsername, error) {
 	query := `
 		SELECT etm.event_team_id, etm.user_id, u.username, etm.role, etm.joined_at
@@ -310,6 +328,8 @@ func (r *MySQLEventTeamRepository) ListMembersWithUsername(teamID uuid.UUID) ([]
 	return members, rows.Err()
 }
 
+// GetTeamByUserAndEvent retorna el equipo al que pertenece un usuario en un evento especifico.
+// Usado para verificar la membresia antes de operaciones de equipo sensibles.
 func (r *MySQLEventTeamRepository) GetTeamByUserAndEvent(eventID, userID uuid.UUID) (*teamdomain.EventTeam, error) {
 	query := `
 		SELECT et.id, et.event_id, et.name, et.join_secret_hash,
@@ -329,8 +349,7 @@ func (r *MySQLEventTeamRepository) GetTeamByUserAndEvent(eventID, userID uuid.UU
 	return scanTeam(smt.QueryRow(eventID.String(), userID.String()))
 }
 
-/* ---------- helpers ---------- */
-
+// scanTeam mapea un sql.Row a un EventTeam, convirtiendo los UUIDs de string.
 func scanTeam(row *sql.Row) (*teamdomain.EventTeam, error) {
 	var t teamdomain.EventTeam
 	var id, eventID string

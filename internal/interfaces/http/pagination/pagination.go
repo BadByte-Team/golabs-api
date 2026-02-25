@@ -1,4 +1,11 @@
-// Package pagination provides helpers to parse and return paginated responses.
+// Package pagination provee helpers para parsear parametros de paginacion desde
+// el query string de la peticion HTTP y construir respuestas paginadas estandarizadas.
+//
+// Uso tipico en un handler:
+//
+//	p := pagination.Parse(r)
+//	items, total, _ := repo.List(p.Offset(), p.Size)
+//	apperrors.RespondJSON(w, 200, pagination.New(items, p, total))
 package pagination
 
 import (
@@ -7,23 +14,28 @@ import (
 )
 
 const (
-	DefaultPage = 1
-	DefaultSize = 20
-	MaxSize     = 100
+	DefaultPage = 1   // pagina por defecto si no se especifica ?page=
+	DefaultSize = 20  // tamaño de pagina por defecto si no se especifica ?size=
+	MaxSize     = 100 // tamaño maximo permitido para prevenir consultas masivas
 )
 
-// Page holds parsed pagination parameters.
+// Page contiene los parametros de paginacion ya parseados y validados.
 type Page struct {
-	Number int // 1-indexed
-	Size   int
+	Number int // numero de pagina, con base 1 (la primera pagina es 1)
+	Size   int // cantidad de registros por pagina
 }
 
-// Offset returns the SQL OFFSET value.
+// Offset calcula el valor SQL OFFSET correspondiente a esta pagina.
+// Se usa directamente en queries: SELECT ... LIMIT size OFFSET offset.
 func (p Page) Offset() int {
 	return (p.Number - 1) * p.Size
 }
 
-// Parse reads ?page= and ?size= from the request query string.
+// Parse lee los parametros ?page= y ?size= del query string de la peticion.
+// Aplica valores por defecto y limites para evitar paginas invalidas o demasiado grandes.
+//
+// Entrada:  r, peticion HTTP con query string.
+// Salida:   Page con valores ya validados y dentro de los limites permitidos.
 func Parse(r *http.Request) Page {
 	page := queryInt(r, "page", DefaultPage)
 	size := queryInt(r, "size", DefaultSize)
@@ -35,25 +47,31 @@ func Parse(r *http.Request) Page {
 		size = DefaultSize
 	}
 	if size > MaxSize {
+		// Limitar para protejer contra consultas que devuelvan demasiados registros.
 		size = MaxSize
 	}
 	return Page{Number: page, Size: size}
 }
 
-// Meta is embedded in paginated responses.
+// Meta contiene los metadatos de paginacion incluidos en todas las respuestas paginadas.
 type Meta struct {
-	Page  int `json:"page"`
-	Size  int `json:"size"`
-	Total int `json:"total"`
+	Page  int `json:"page"`  // numero de pagina actual
+	Size  int `json:"size"`  // tamaño de pagina devuelto
+	Total int `json:"total"` // total de registros disponibles (sin paginar)
 }
 
-// Response is a generic paginated response envelope.
+// Response es el envelope generico para respuestas paginadas.
+// Data contiene los registros de la pagina actual; Meta tiene la informacion de paginacion.
 type Response[T any] struct {
 	Data []T  `json:"data"`
 	Meta Meta `json:"meta"`
 }
 
-// New builds a paginated response.
+// New construye una Response paginada a partir de los datos y los parametros de pagina.
+// Si data es nil, se normaliza a slice vacio para evitar null en el JSON.
+//
+// Entrada:  data, registros de la pagina; p, parametros de pagina; total, total de registros.
+// Salida:   Response lista para serializar como JSON.
 func New[T any](data []T, p Page, total int) Response[T] {
 	if data == nil {
 		data = []T{}
@@ -61,6 +79,8 @@ func New[T any](data []T, p Page, total int) Response[T] {
 	return Response[T]{Data: data, Meta: Meta{Page: p.Number, Size: p.Size, Total: total}}
 }
 
+// queryInt lee un parametro del query string como entero.
+// Retorna def si el parametro no existe o no puede parsearse.
 func queryInt(r *http.Request, key string, def int) int {
 	s := r.URL.Query().Get(key)
 	if s == "" {

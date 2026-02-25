@@ -1,3 +1,4 @@
+// Package interfaces implementa los handlers HTTP y el registro de rutas del modulo de eventos.
 package interfaces
 
 import (
@@ -12,6 +13,8 @@ import (
 	"golabs-api/internal/interfaces/http/validate"
 )
 
+// EventHandler agrupa los handlers HTTP del modulo de eventos.
+// Cada metodo corresponde a un endpoint de la API REST de eventos.
 type EventHandler struct {
 	createUC *eventsapp.CreateEventUseCase
 	getUC    *eventsapp.GetEventByIDUseCase
@@ -21,6 +24,7 @@ type EventHandler struct {
 	finishUC *eventsapp.FinishEventUseCase
 }
 
+// NewEventHandler inyecta las dependencias del EventHandler.
 func NewEventHandler(
 	create *eventsapp.CreateEventUseCase,
 	get *eventsapp.GetEventByIDUseCase,
@@ -39,6 +43,13 @@ func NewEventHandler(
 	}
 }
 
+// Create godoc
+//
+// POST /api/v1/events
+//
+// Crea un nuevo evento en estado "draft". Solo admins.
+// Body:  CreateEventRequest
+// Exito: 201 EventResponse
 func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req CreateEventRequest
 	if err := validate.DecodeAndValidate(r, &req); err != nil {
@@ -61,6 +72,13 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusCreated, mapEvent(event))
 }
 
+// GetByID godoc
+//
+// GET /api/v1/events/{event_id}
+//
+// Retorna el detalle de un evento especifico.
+// Exito: 200 EventResponse
+// Error: 404 si no existe
 func (h *EventHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "event_id")
 
@@ -73,6 +91,12 @@ func (h *EventHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, mapEvent(event))
 }
 
+// List godoc
+//
+// GET /api/v1/events?page=1&size=20
+//
+// Retorna todos los eventos paginados. La paginacion se aplica en memoria sobre el slice completo.
+// Exito: 200 pagination.Response[EventResponse]
 func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	pg := pagination.Parse(r)
 	events, err := h.listUC.Execute()
@@ -81,7 +105,7 @@ func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Apply manual pagination on the slice (list is small in practice).
+	// Paginacion manual sobre el slice (lista reducida en la practica).
 	total := len(events)
 	start := pg.Offset()
 	if start > total {
@@ -101,6 +125,9 @@ func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, pagination.New(resp, pg, total))
 }
 
+// Open godoc — PATCH /api/v1/events/{event_id}/open
+// Transiciona el evento de "draft" a "open" para que los equipos puedan unirse.
+// Exito: 204 No Content
 func (h *EventHandler) Open(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "event_id")
 	if err := h.openUC.Execute(id); err != nil {
@@ -110,6 +137,9 @@ func (h *EventHandler) Open(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// Start godoc — PATCH /api/v1/events/{event_id}/start
+// Transiciona el evento de "open" a "running". Los challenges quedan visibles para los equipos.
+// Exito: 204 No Content
 func (h *EventHandler) Start(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "event_id")
 	if err := h.startUC.Execute(id); err != nil {
@@ -119,6 +149,9 @@ func (h *EventHandler) Start(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// Finish godoc — PATCH /api/v1/events/{event_id}/finish
+// Transiciona el evento de "running" a "finished". No se aceptan mas flag submissions.
+// Exito: 204 No Content
 func (h *EventHandler) Finish(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "event_id")
 	if err := h.finishUC.Execute(id); err != nil {
@@ -128,6 +161,7 @@ func (h *EventHandler) Finish(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// mapEvent convierte un Event de dominio a su representacion JSON para la API.
 func mapEvent(e *eventdomain.Event) EventResponse {
 	return EventResponse{
 		ID:          e.ID.String(),

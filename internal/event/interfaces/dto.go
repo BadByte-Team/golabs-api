@@ -1,7 +1,9 @@
+// Package interfaces implementa los handlers HTTP y el registro de rutas del modulo de eventos.
 package interfaces
 
 import "time"
 
+// CreateEventRequest es el body de la peticion para crear un nuevo evento.
 type CreateEventRequest struct {
 	Name        string    `json:"name"          validate:"required,max=100"`
 	Description string    `json:"description"   validate:"max=1000"`
@@ -10,6 +12,8 @@ type CreateEventRequest struct {
 	EndsAt      time.Time `json:"ends_at"       validate:"required"`
 }
 
+// EventResponse es la representacion JSON de un evento para la API.
+// El campo Status es el string del EventStatus (draft, open, running, finished).
 type EventResponse struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`

@@ -1,3 +1,4 @@
+// Package infrastructure implementa el repositorio de eventos usando MySQL/MariaDB.
 package infrastructure
 
 import (
@@ -10,14 +11,19 @@ import (
 	eventdomain "golabs-api/internal/event/domain"
 )
 
+// MySQLEventRepository implementa eventdomain.Repository usando MySQL/MariaDB.
 type MySQLEventRepository struct {
 	db *sql.DB
 }
 
+// NewEventRepository crea una instancia de MySQLEventRepository a partir de la conexion de BD.
+// Retorna la interfaz eventdomain.Repository para que el llamador no dependa de la implementacion concreta.
 func NewEventRepository(db *sql.DB) eventdomain.Repository {
 	return &MySQLEventRepository{db: db}
 }
 
+// Save inserta un nuevo evento en la tabla events.
+// Establece los timestamps created_at y updated_at en UTC al momento de la insercion.
 func (r *MySQLEventRepository) Save(event *eventdomain.Event) error {
 	query := `
 		INSERT INTO events (
@@ -51,6 +57,8 @@ func (r *MySQLEventRepository) Save(event *eventdomain.Event) error {
 	return err
 }
 
+// GetByID busca un evento por su UUID.
+// Retorna error si no existe ningun evento con ese ID.
 func (r *MySQLEventRepository) GetByID(id uuid.UUID) (*eventdomain.Event, error) {
 	query := `
 		SELECT id, name, description, max_team_size, status,
@@ -69,6 +77,7 @@ func (r *MySQLEventRepository) GetByID(id uuid.UUID) (*eventdomain.Event, error)
 	return scanEvent(smt.QueryRow(id.String()))
 }
 
+// List retorna todos los eventos ordenados por fecha de inicio descendente.
 func (r *MySQLEventRepository) List() ([]*eventdomain.Event, error) {
 	query := `
 		SELECT id, name, description, max_team_size, status,
@@ -99,6 +108,8 @@ func (r *MySQLEventRepository) List() ([]*eventdomain.Event, error) {
 	return events, nil
 }
 
+// Update persiste los campos modificables de un evento existente.
+// Actualiza automaticamente el campo updated_at al momento de la operacion.
 func (r *MySQLEventRepository) Update(event *eventdomain.Event) error {
 	query := `
 		UPDATE events
@@ -129,8 +140,7 @@ func (r *MySQLEventRepository) Update(event *eventdomain.Event) error {
 	return err
 }
 
-/* ---------- helpers ---------- */
-
+// scanEvent mapea un sql.Row a un Event, convirtiendo el UUID y el status de string.
 func scanEvent(row *sql.Row) (*eventdomain.Event, error) {
 	var e eventdomain.Event
 	var id string
@@ -163,6 +173,7 @@ func scanEvent(row *sql.Row) (*eventdomain.Event, error) {
 	return &e, nil
 }
 
+// scanEventRow mapea una fila de sql.Rows a un Event para uso en iteraciones.
 func scanEventRow(rows *sql.Rows) (*eventdomain.Event, error) {
 	var e eventdomain.Event
 	var id string

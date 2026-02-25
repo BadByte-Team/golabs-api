@@ -1,6 +1,9 @@
-// Package apperrors defines sentinel domain errors and HTTP mapping helpers.
-// Use these in use cases to signal the kind of failure, and in handlers to
-// map them to the correct HTTP status code.
+// Package apperrors define los errores centinela del dominio y los helpers HTTP
+// para traducirlos a respuestas JSON con el codigo de estado correcto.
+//
+// Uso en use cases: retornar un error centinela (p.ej. ErrNotFound) o un error
+// que lo envuelva (fmt.Errorf("%w: ...", apperrors.ErrNotFound)).
+// Uso en handlers: llamar RespondError(w, err) y dejar que el mapeo sea automatico.
 package apperrors
 
 import (
@@ -9,7 +12,8 @@ import (
 	"net/http"
 )
 
-// Sentinel errors — use errors.Is() to check.
+// Errores centinela del dominio. Usar errors.Is() para comparar,
+// ya que los use cases pueden envolver estos errores con contexto adicional.
 var (
 	ErrNotFound     = errors.New("not found")
 	ErrConflict     = errors.New("conflict")
@@ -18,7 +22,8 @@ var (
 	ErrBadRequest   = errors.New("bad request")
 )
 
-// httpStatus maps a sentinel error to its HTTP status code.
+// httpStatus mapea un error centinela al codigo HTTP correspondiente.
+// Si el error no coincide con ningun centinela conocido se retorna 400 Bad Request.
 func httpStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrNotFound):
@@ -34,12 +39,15 @@ func httpStatus(err error) int {
 	}
 }
 
-// ErrorResponse is the standard JSON error body.
+// ErrorResponse es el cuerpo JSON estandar para respuestas de error.
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-// RespondError writes the correct HTTP status + JSON body for a domain error.
+// RespondError escribe el codigo HTTP correcto y el cuerpo JSON de error para un error de dominio.
+//
+// Entrada:  w, el ResponseWriter de la peticion; err, el error del dominio o de aplicacion.
+// Salida:   respuesta HTTP con Content-Type: application/json y el mensaje de error.
 func RespondError(w http.ResponseWriter, err error) {
 	status := httpStatus(err)
 	w.Header().Set("Content-Type", "application/json")
@@ -47,7 +55,10 @@ func RespondError(w http.ResponseWriter, err error) {
 	json.NewEncoder(w).Encode(ErrorResponse{Error: err.Error()})
 }
 
-// RespondJSON writes a successful JSON response with the given status.
+// RespondJSON escribe una respuesta JSON exitosa con el codigo de estado indicado.
+//
+// Entrada:  w, el ResponseWriter; status, codigo HTTP (p.ej. 200, 201); v, cualquier valor serializable.
+// Salida:   respuesta HTTP con Content-Type: application/json y el cuerpo codificado en JSON.
 func RespondJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

@@ -1,3 +1,4 @@
+// Package infrastructure implementa el repositorio de challenges usando MySQL/MariaDB.
 package infrastructure
 
 import (
@@ -10,16 +11,18 @@ import (
 	challengedomain "golabs-api/internal/challenges/domain"
 )
 
+// MySQLChallengeRepository implementa challengedomain.Repository usando MySQL/MariaDB.
 type MySQLChallengeRepository struct {
 	db *sql.DB
 }
 
+// NewChallengeRepository crea una instancia de MySQLChallengeRepository.
+// Retorna la interfaz challengedomain.Repository para desacoplar del tipo concreto.
 func NewChallengeRepository(db *sql.DB) challengedomain.Repository {
 	return &MySQLChallengeRepository{db: db}
 }
 
-/* ── Challenges ─────────────────────────────────────────────────────────── */
-
+// SaveChallenge inserta un nuevo challenge en la tabla challenges.
 func (r *MySQLChallengeRepository) SaveChallenge(c *challengedomain.Challenge) error {
 	query := `
 		INSERT INTO challenges (
@@ -41,6 +44,8 @@ func (r *MySQLChallengeRepository) SaveChallenge(c *challengedomain.Challenge) e
 	return err
 }
 
+// UpdateChallenge persiste los cambios en un challenge existente.
+// Actualiza todos los campos modificables incluyendo updated_at.
 func (r *MySQLChallengeRepository) UpdateChallenge(c *challengedomain.Challenge) error {
 	query := `
 		UPDATE challenges
@@ -61,6 +66,7 @@ func (r *MySQLChallengeRepository) UpdateChallenge(c *challengedomain.Challenge)
 	return err
 }
 
+// GetChallengeByID busca un challenge por su UUID.
 func (r *MySQLChallengeRepository) GetChallengeByID(id uuid.UUID) (*challengedomain.Challenge, error) {
 	query := `
 		SELECT id, event_id, title, description, category,
@@ -78,6 +84,10 @@ func (r *MySQLChallengeRepository) GetChallengeByID(id uuid.UUID) (*challengedom
 	return scanChallenge(smt.QueryRow(id.String()))
 }
 
+// ListChallengesByEvent retorna los challenges de un evento con filtros opcionales.
+// visibleOnly=true excluye challenges ocultos (para no-admins).
+// Los filtros de category y difficulty son opcionales; cadena vacia = sin filtro.
+// Los resultados se ordenan por category y luego por points ascendente.
 func (r *MySQLChallengeRepository) ListChallengesByEvent(eventID uuid.UUID, visibleOnly bool, category, difficulty string) ([]*challengedomain.Challenge, error) {
 	q := `SELECT id, event_id, title, description, category, points, difficulty, visible, created_at, updated_at FROM challenges WHERE event_id = ?`
 	args := []any{eventID.String()}
@@ -112,9 +122,8 @@ func (r *MySQLChallengeRepository) ListChallengesByEvent(eventID uuid.UUID, visi
 	return challenges, rows.Err()
 }
 
-/* ── Flags ──────────────────────────────────────────────────────────────── */
-
-// UpsertFlag inserts the flag or replaces the hash if one already exists for this challenge.
+// UpsertFlag inserta la flag o reemplaza el hash si ya existe una para este challenge.
+// Usa ON DUPLICATE KEY UPDATE sobre el campo challenge_id (unique) para el upsert.
 func (r *MySQLChallengeRepository) UpsertFlag(f *challengedomain.Flag) error {
 	query := `
 		INSERT INTO flags (id, challenge_id, hash, created_at)
@@ -131,6 +140,8 @@ func (r *MySQLChallengeRepository) UpsertFlag(f *challengedomain.Flag) error {
 	return err
 }
 
+// GetFlagByChallengeID retorna la flag de un challenge para validacion de submissions.
+// El campo Hash contiene el SHA-256 del texto plano original.
 func (r *MySQLChallengeRepository) GetFlagByChallengeID(challengeID uuid.UUID) (*challengedomain.Flag, error) {
 	query := `
 		SELECT id, challenge_id, hash, created_at
@@ -167,8 +178,7 @@ func (r *MySQLChallengeRepository) GetFlagByChallengeID(challengeID uuid.UUID) (
 	return &f, nil
 }
 
-/* ── Solves ─────────────────────────────────────────────────────────────── */
-
+// SaveSolve registra la resolucion de un challenge por un equipo.
 func (r *MySQLChallengeRepository) SaveSolve(s *challengedomain.Solve) error {
 	query := `
 		INSERT INTO solves (id, challenge_id, event_team_id, user_id, solved_at)
@@ -187,6 +197,8 @@ func (r *MySQLChallengeRepository) SaveSolve(s *challengedomain.Solve) error {
 	return err
 }
 
+// HasTeamSolved verifica si el equipo ya ha resuelto el challenge.
+// Usado para evitar otorgar puntos dobles.
 func (r *MySQLChallengeRepository) HasTeamSolved(challengeID, teamID uuid.UUID) (bool, error) {
 	query := `
 		SELECT COUNT(*)
@@ -198,14 +210,17 @@ func (r *MySQLChallengeRepository) HasTeamSolved(challengeID, teamID uuid.UUID) 
 	return count > 0, err
 }
 
+// ListSolvesByChallenge retorna todos los solves de un challenge especifico.
 func (r *MySQLChallengeRepository) ListSolvesByChallenge(challengeID uuid.UUID) ([]*challengedomain.Solve, error) {
 	return r.listSolves(`WHERE challenge_id = ?`, challengeID.String())
 }
 
+// ListSolvesByTeam retorna todos los solves realizados por un equipo.
 func (r *MySQLChallengeRepository) ListSolvesByTeam(teamID uuid.UUID) ([]*challengedomain.Solve, error) {
 	return r.listSolves(`WHERE event_team_id = ?`, teamID.String())
 }
 
+// listSolves es un helper interno que ejecuta una consulta de solves con un filtro WHERE parametrizado.
 func (r *MySQLChallengeRepository) listSolves(where, arg string) ([]*challengedomain.Solve, error) {
 	query := `SELECT id, challenge_id, event_team_id, user_id, solved_at FROM solves ` + where + ` ORDER BY solved_at ASC`
 
@@ -230,12 +245,15 @@ func (r *MySQLChallengeRepository) listSolves(where, arg string) ([]*challengedo
 	return solves, nil
 }
 
+// GetSolveCount retorna el numero de equipos que han resuelto un challenge.
 func (r *MySQLChallengeRepository) GetSolveCount(challengeID uuid.UUID) (int, error) {
 	var count int
 	err := r.db.QueryRow(`SELECT COUNT(*) FROM solves WHERE challenge_id = ?`, challengeID.String()).Scan(&count)
 	return count, err
 }
 
+// GetFirstBlood retorna el primer solve de un challenge (el equipo que lo resolvio primero).
+// Retorna nil, nil si nadie ha resuelto el challenge aun.
 func (r *MySQLChallengeRepository) GetFirstBlood(challengeID uuid.UUID) (*challengedomain.Solve, error) {
 	query := `SELECT id, challenge_id, event_team_id, user_id, solved_at FROM solves WHERE challenge_id = ? ORDER BY solved_at ASC LIMIT 1`
 
@@ -252,11 +270,11 @@ func (r *MySQLChallengeRepository) GetFirstBlood(challengeID uuid.UUID) (*challe
 		}
 		return s, rows.Err()
 	}
-	return nil, nil // no current first blood — challenge unsolved
+	// Challenge sin solves: first blood no existe todavia.
+	return nil, nil
 }
 
-/* ── helpers ────────────────────────────────────────────────────────────── */
-
+// scanChallenge mapea un sql.Row a un Challenge, convirtiendo UUIDs y enums.
 func scanChallenge(row *sql.Row) (*challengedomain.Challenge, error) {
 	var c challengedomain.Challenge
 	var id, eventID, category, difficulty string
@@ -286,7 +304,7 @@ func scanChallenge(row *sql.Row) (*challengedomain.Challenge, error) {
 	return &c, nil
 }
 
-// scanChallengeRow scans from a *sql.Rows (used in list queries).
+// scanChallengeRow mapea un sql.Rows a un Challenge. Usado en queries de lista.
 func scanChallengeRow(rows *sql.Rows) (*challengedomain.Challenge, error) {
 	var c challengedomain.Challenge
 	var id, eventID, category, difficulty string
@@ -313,6 +331,7 @@ func scanChallengeRow(rows *sql.Rows) (*challengedomain.Challenge, error) {
 	return &c, nil
 }
 
+// scanSolve mapea un sql.Rows a un Solve, convirtiendo UUIDs de string.
 func scanSolve(rows *sql.Rows) (*challengedomain.Solve, error) {
 	var s challengedomain.Solve
 	var id, challengeID, teamID, userID string
@@ -339,6 +358,6 @@ func scanSolve(rows *sql.Rows) (*challengedomain.Solve, error) {
 }
 
 func init() {
-	// Ensure compile-time check: all timestamps stored as UTC
+	// Verificacion en tiempo de compilacion: los timestamps deben almacenarse en UTC.
 	_ = time.UTC
 }

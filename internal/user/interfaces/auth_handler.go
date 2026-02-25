@@ -1,3 +1,5 @@
+// Package userhttp implementa los handlers HTTP del modulo de usuarios
+// y el registro de sus rutas en el router principal.
 package userhttp
 
 import (
@@ -9,16 +11,17 @@ import (
 	userapp "golabs-api/internal/user/application"
 )
 
-// AuthHandler handles public authentication endpoints.
+// AuthHandler agrupa los handlers de autenticacion publica (sin token requerido).
+// Depende de los use cases de login, registro y gestion de refresh tokens.
 type AuthHandler struct {
 	login      *userapp.LoginUseCase
 	createUser *userapp.CreateUserUseCase
-	issueRT    *refreshtokenapp.IssueRefreshTokenUseCase
-	refreshRT  *refreshtokenapp.RefreshAccessTokenUseCase
-	revokeRT   *refreshtokenapp.RevokeRefreshTokenUseCase
+	issueRT    *refreshtokenapp.IssueRefreshTokenUseCase  // emitir refresh token al login
+	refreshRT  *refreshtokenapp.RefreshAccessTokenUseCase // rotar refresh token
+	revokeRT   *refreshtokenapp.RevokeRefreshTokenUseCase // revocar refresh token al logout
 }
 
-// NewAuthHandler creates an AuthHandler.
+// NewAuthHandler inyecta las dependencias del AuthHandler.
 func NewAuthHandler(
 	login *userapp.LoginUseCase,
 	createUser *userapp.CreateUserUseCase,
@@ -35,8 +38,16 @@ func NewAuthHandler(
 	}
 }
 
-// Login handles POST /auth/login.
-// Returns { access_token, refresh_token, expires_in }.
+// Login godoc
+//
+// POST /auth/login
+//
+// Autentica al usuario con identifier (email o username) + password.
+// Retorna un par de tokens: access token (JWT de 15 min) y refresh token (opaco, de larga duracion).
+//
+// Body:   { "identifier": string, "password": string }
+// Exito:  200 { "access_token", "refresh_token", "expires_in" }
+// Error:  400 (body invalido), 401/403 (credenciales incorrectas o usuario baneado)
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := validate.DecodeAndValidate(r, &req); err != nil {
@@ -59,11 +70,19 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: rawRT,
-		ExpiresIn:    15 * 60, // 15 minutes in seconds
+		ExpiresIn:    15 * 60, // segundos hasta que expira el access token
 	})
 }
 
-// Register handles POST /auth/register.
+// Register godoc
+//
+// POST /auth/register
+//
+// Crea una cuenta nueva con username, email y password.
+//
+// Body:   { "username", "email", "password" }
+// Exito:  201 UserResponse
+// Error:  400 (body invalido), 409 (email o username ya en uso)
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req CreateUserRequest
 	if err := validate.DecodeAndValidate(r, &req); err != nil {
@@ -78,8 +97,16 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusCreated, mapUser(user))
 }
 
-// Refresh handles POST /auth/refresh.
-// Validates the refresh token, rotates it, and returns a new token pair.
+// Refresh godoc
+//
+// POST /auth/refresh
+//
+// Valida el refresh token, lo revoca (token rotation) y emite un nuevo par de tokens.
+// Si el refresh token fue robado y ya fue rotado, la validacion fallara.
+//
+// Body:   { "refresh_token": string }
+// Exito:  200 { "access_token", "refresh_token", "expires_in" }
+// Error:  400 (body invalido), 401 (token invalido, expirado o ya revocado)
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	var req RefreshRequest
 	if err := validate.DecodeAndValidate(r, &req); err != nil {
@@ -100,12 +127,19 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Logout handles POST /auth/logout.
-// Revokes the refresh token so it can no longer be used.
+// Logout godoc
+//
+// POST /auth/logout
+//
+// Revoca el refresh token indicado para invalidar la sesion actual.
+// Siempre responde con 204 independientemente del resultado, para que el cliente
+// no distinga entre "token valido revocado" y "token ya expirado/invalido".
+//
+// Body:   { "refresh_token": string }
+// Exito:  204 No Content (idempotente)
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	var req RefreshRequest
 	if err := validate.DecodeAndValidate(r, &req); err != nil {
-		// Even with a bad body, respond 204 — logout should never fail for the client.
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -113,9 +147,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-/* -------- helpers -------- */
-
-// decodeJSON is a shared helper to decode a JSON request body (no validation).
+// decodeJSON es un helper interno para decodificar el body JSON sin validacion de struct tags.
 func decodeJSON(r *http.Request, v any) error {
 	return validate.DecodeOnly(r, v)
 }

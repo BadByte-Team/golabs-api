@@ -1,3 +1,4 @@
+// Package interfaces implementa los handlers HTTP y el registro de rutas del modulo de challenges.
 package interfaces
 
 import (
@@ -17,14 +18,28 @@ import (
 	userinfra "golabs-api/internal/user/infrastructure"
 )
 
-// RegisterRoutes wires all challenge routes under /events/{event_id}/challenges.
+// RegisterRoutes registra todas las rutas del modulo de challenges bajo /events/{event_id}/challenges.
+//
+// Rutas publicas (solo JWT, sin LoadUser para evitar consulta extra):
+//   - GET  /events/{event_id}/challenges                      lista de challenges del evento
+//   - GET  /events/{event_id}/challenges/{challenge_id}       detalle de challenge
+//
+// Ruta de participantes (JWT + LoadUser + no baneado + rate limit):
+//   - POST /events/{event_id}/challenges/{challenge_id}/submit  enviar flag
+//
+// Rutas de admin (JWT + rol admin, sin LoadUser):
+//   - POST /events/{event_id}/challenges                        crear challenge
+//   - PUT  /events/{event_id}/challenges/{challenge_id}         actualizar challenge
+//   - POST /events/{event_id}/challenges/{challenge_id}/publish  publicar
+//   - POST /events/{event_id}/challenges/{challenge_id}/unpublish ocultar
+//   - POST /events/{event_id}/challenges/{challenge_id}/flag    establecer flag
 func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 	challengeRepo := challengeinfra.NewChallengeRepository(db)
 	eventRepo := eventinfra.NewEventRepository(db)
 	teamRepo := teaminfra.NewEventTeamRepository(db)
 	userRepo := userinfra.NewUserRepository(db)
 
-	// Use cases
+	// Use cases.
 	createUC := challengeapp.NewCreateChallengeUseCase(challengeRepo, eventRepo)
 	updateUC := challengeapp.NewUpdateChallengeUseCase(challengeRepo)
 	publishUC := challengeapp.NewPublishChallengeUseCase(challengeRepo)
@@ -37,14 +52,14 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 
 	r.Route("/events/{event_id}/challenges", func(r chi.Router) {
 
-		// ── Public (authenticated, role already in JWT context) ──────────────
+		// Rutas publicas para usuarios autenticados (el rol viene del JWT, sin LoadUser).
 		r.Group(func(r chi.Router) {
 			r.Use(authmw.JWTAuth(jwtSvc))
 
 			r.Get("/", h.List)
 			r.Get("/{challenge_id}", h.Get)
 
-			// Submit: authenticated + not banned + rate limited
+			// Submit: requiere a su vez que el usuario este activo (no baneado).
 			r.Group(func(r chi.Router) {
 				r.Use(authmw.LoadUser(userRepo))
 				r.Use(accessmw.RequireNotBanned)
@@ -53,7 +68,7 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 			})
 		})
 
-		// ── Admin only (role from JWT, no extra DB round-trip) ───────────────
+		// Rutas de administracion (solo admin, sin LoadUser: el rol viene del JWT).
 		r.Group(func(r chi.Router) {
 			r.Use(authmw.JWTAuth(jwtSvc))
 			r.Use(accessmw.RequireRole(userdomain.RoleAdmin))

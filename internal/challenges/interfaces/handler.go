@@ -1,3 +1,4 @@
+// Package interfaces implementa los handlers HTTP y el registro de rutas del modulo de challenges.
 package interfaces
 
 import (
@@ -14,6 +15,7 @@ import (
 	userdomain "golabs-api/internal/user/domain"
 )
 
+// ChallengeHandler agrupa los handlers HTTP del modulo de challenges.
 type ChallengeHandler struct {
 	createUC  *challengeapp.CreateChallengeUseCase
 	updateUC  *challengeapp.UpdateChallengeUseCase
@@ -24,6 +26,7 @@ type ChallengeHandler struct {
 	submitUC  *challengeapp.SubmitFlagUseCase
 }
 
+// NewChallengeHandler inyecta las dependencias del ChallengeHandler.
 func NewChallengeHandler(
 	create *challengeapp.CreateChallengeUseCase,
 	update *challengeapp.UpdateChallengeUseCase,
@@ -44,8 +47,9 @@ func NewChallengeHandler(
 	}
 }
 
-/* ── List ───────────────────────────────────────────────────────────────── */
-
+// List godoc — GET /api/v1/events/{event_id}/challenges?category=&difficulty=
+// Lista los challenges del evento. Admins ven todo (incluidos ocultos); participantes solo los visibles.
+// Exito: 200 []ChallengeResponse (con SolveCount y FirstBloodTeamID)
 func (h *ChallengeHandler) List(w http.ResponseWriter, r *http.Request) {
 	eventID, err := uuid.Parse(chi.URLParam(r, "event_id"))
 	if err != nil {
@@ -56,7 +60,7 @@ func (h *ChallengeHandler) List(w http.ResponseWriter, r *http.Request) {
 	user, _ := authmw.GetUser(r.Context())
 	isAdmin := user.Role == userdomain.RoleAdmin
 
-	// Optional ?category= and ?difficulty= filters
+	// Filtros opcionales por categoria y dificultad.
 	category := r.URL.Query().Get("category")
 	difficulty := r.URL.Query().Get("difficulty")
 
@@ -73,8 +77,9 @@ func (h *ChallengeHandler) List(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, resp)
 }
 
-/* ── Get ────────────────────────────────────────────────────────────────── */
-
+// Get godoc — GET /api/v1/events/{event_id}/challenges/{challenge_id}
+// Retorna el detalle de un challenge. Los ocultos retornan 404 para no-admins.
+// Exito: 200 ChallengeResponse
 func (h *ChallengeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(chi.URLParam(r, "challenge_id"))
 	if err != nil {
@@ -93,8 +98,9 @@ func (h *ChallengeHandler) Get(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, mapChallenge(challenge))
 }
 
-/* ── Create (admin) ─────────────────────────────────────────────────────── */
-
+// Create godoc — POST /api/v1/events/{event_id}/challenges (admin)
+// Crea un challenge en estado oculto (visible=false). Requiere SetFlag para activarlo.
+// Body: CreateChallengeRequest | Exito: 201 ChallengeResponse
 func (h *ChallengeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	eventID, err := uuid.Parse(chi.URLParam(r, "event_id"))
 	if err != nil {
@@ -123,8 +129,9 @@ func (h *ChallengeHandler) Create(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusCreated, mapChallenge(challenge))
 }
 
-/* ── Update (admin) ─────────────────────────────────────────────────────── */
-
+// Update godoc — PUT /api/v1/events/{event_id}/challenges/{challenge_id} (admin)
+// Actualiza los datos de un challenge. La flag se gestiona por separado con SetFlag.
+// Body: UpdateChallengeRequest | Exito: 200 ChallengeResponse
 func (h *ChallengeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(chi.URLParam(r, "challenge_id"))
 	if err != nil {
@@ -153,8 +160,9 @@ func (h *ChallengeHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, mapChallenge(challenge))
 }
 
-/* ── Publish (admin) ─────────────────────────────────────────────────────── */
-
+// Publish godoc — POST /api/v1/events/{event_id}/challenges/{challenge_id}/publish (admin)
+// Hace visible el challenge para los participantes.
+// Exito: 200 ChallengeResponse
 func (h *ChallengeHandler) Publish(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(chi.URLParam(r, "challenge_id"))
 	if err != nil {
@@ -170,6 +178,9 @@ func (h *ChallengeHandler) Publish(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, mapChallenge(challenge))
 }
 
+// Unpublish godoc — POST /api/v1/events/{event_id}/challenges/{challenge_id}/unpublish (admin)
+// Oculta el challenge para los participantes (visible=false).
+// Exito: 200 ChallengeResponse
 func (h *ChallengeHandler) Unpublish(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(chi.URLParam(r, "challenge_id"))
 	if err != nil {
@@ -185,8 +196,9 @@ func (h *ChallengeHandler) Unpublish(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, mapChallenge(challenge))
 }
 
-/* ── SetFlag (admin) ─────────────────────────────────────────────────────── */
-
+// SetFlag godoc — POST /api/v1/events/{event_id}/challenges/{challenge_id}/flag (admin)
+// Establece o reemplaza la flag del challenge. El texto plano se hashea en el servidor.
+// Body: SetFlagRequest | Exito: 204 No Content
 func (h *ChallengeHandler) SetFlag(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(chi.URLParam(r, "challenge_id"))
 	if err != nil {
@@ -207,8 +219,10 @@ func (h *ChallengeHandler) SetFlag(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-/* ── Submit (participant) ────────────────────────────────────────────────── */
-
+// Submit godoc — POST /api/v1/events/{event_id}/challenges/{challenge_id}/submit
+// Valida una flag enviada por el equipo. La respuesta es intencionalmente vaga para
+// no revelar informacion sobre la flag correcta.
+// Body: SubmitFlagRequest | Exito: 200 SubmitFlagResponse
 func (h *ChallengeHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	eventID, err := uuid.Parse(chi.URLParam(r, "event_id"))
 	if err != nil {
@@ -247,8 +261,7 @@ func (h *ChallengeHandler) Submit(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-/* ── helpers ─────────────────────────────────────────────────────────────── */
-
+// mapChallenge convierte un Challenge de dominio a su representacion JSON para la API.
 func mapChallenge(c *challengedomain.Challenge) ChallengeResponse {
 	return ChallengeResponse{
 		ID:          c.ID.String(),
@@ -264,7 +277,7 @@ func mapChallenge(c *challengedomain.Challenge) ChallengeResponse {
 	}
 }
 
-// mapChallengeResult enriches the response with solve stats.
+// mapChallengeResult enriquece la respuesta del challenge con estadisticas de resoluciones.
 func mapChallengeResult(res *challengeapp.ListChallengesResult) ChallengeResponse {
 	r := mapChallenge(res.Challenge)
 	r.SolveCount = res.SolveCount
