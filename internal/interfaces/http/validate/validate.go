@@ -34,6 +34,12 @@ func DecodeAndValidate(r *http.Request, dst any) error {
 	return nil
 }
 
+// DecodeOnly decodes the JSON body of r into dst without running validation.
+// Use this when validation is not needed or should be silently ignored.
+func DecodeOnly(r *http.Request, dst any) error {
+	return json.NewDecoder(r.Body).Decode(dst)
+}
+
 func fieldError(fe validator.FieldError) string {
 	switch fe.Tag() {
 	case "required":

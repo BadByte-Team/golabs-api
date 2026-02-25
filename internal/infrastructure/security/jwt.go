@@ -28,7 +28,7 @@ func NewJWTService() (*JWTService, error) {
 
 	mins, _ := strconv.Atoi(os.Getenv("JWT_EXP_MINUTES"))
 	if mins <= 0 {
-		mins = 60
+		mins = 15 // short-lived access token; refresh tokens handle long sessions
 	}
 
 	return &JWTService{

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"golabs-api/internal/infrastructure/security"
@@ -20,11 +21,9 @@ func NewLoginUseCase(repo userdomain.UserRepository, jwt *security.JWTService) *
 }
 
 // Execute accepts either an email address or a username in the `identifier` field.
-func (uc *LoginUseCase) Execute(identifier, password string) (string, error) {
-	var (
-		user *userdomain.User
-		err  error
-	)
+// Returns the signed access token and the user's UUID (needed to issue a refresh token).
+func (uc *LoginUseCase) Execute(identifier, password string) (accessToken string, userID uuid.UUID, err error) {
+	var user *userdomain.User
 
 	// Determine lookup strategy: email addresses contain "@".
 	if strings.Contains(identifier, "@") {
@@ -35,19 +34,24 @@ func (uc *LoginUseCase) Execute(identifier, password string) (string, error) {
 
 	if err != nil {
 		// Generic error — do not reveal whether email/username exists.
-		return "", errors.New("credenciales inválidas")
+		return "", uuid.Nil, errors.New("credenciales inválidas")
 	}
 
 	if user.Banned {
-		return "", errors.New("usuario baneado")
+		return "", uuid.Nil, errors.New("usuario baneado")
 	}
 
 	if err := bcrypt.CompareHashAndPassword(
 		[]byte(user.PasswordHash),
 		[]byte(password),
 	); err != nil {
-		return "", errors.New("credenciales inválidas")
+		return "", uuid.Nil, errors.New("credenciales inválidas")
 	}
 
-	return uc.jwt.Generate(user.ID.String(), user.Role)
+	token, err := uc.jwt.Generate(user.ID.String(), user.Role)
+	if err != nil {
+		return "", uuid.Nil, err
+	}
+
+	return token, user.ID, nil
 }

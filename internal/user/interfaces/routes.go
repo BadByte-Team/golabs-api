@@ -9,6 +9,9 @@ import (
 	accessmw "golabs-api/internal/interfaces/http/middleware/access"
 	authmw "golabs-api/internal/interfaces/http/middleware/auth"
 	"golabs-api/internal/interfaces/http/middleware/ratelimit"
+	refreshtokenapp "golabs-api/internal/refreshtoken/application"
+	refreshtokendomain "golabs-api/internal/refreshtoken/domain"
+	refreshtokeninfra "golabs-api/internal/refreshtoken/infrastructure"
 	userapp "golabs-api/internal/user/application"
 	userdomain "golabs-api/internal/user/domain"
 	userinfra "golabs-api/internal/user/infrastructure"
@@ -17,8 +20,16 @@ import (
 // RegisterRoutes wires all user and auth routes into the given router.
 func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 	repo := userinfra.NewUserRepository(db)
+	rtRepo := refreshtokeninfra.New(db)
 
-	// Use cases
+	// ── Use cases ──────────────────────────────────────────────────────────────
+
+	// Refresh token use cases
+	issueRT := refreshtokenapp.NewIssueRefreshTokenUseCase(rtRepo)
+	refreshRT := refreshtokenapp.NewRefreshAccessTokenUseCase(rtRepo, repo, jwtSvc, issueRT)
+	revokeRT := refreshtokenapp.NewRevokeRefreshTokenUseCase(rtRepo)
+
+	// User use cases
 	createUserUC := userapp.NewCreateUserUseCase(repo)
 	getUserByIDUC := userapp.NewGetUserByIDUseCase(repo)
 	getUserByUsernameUC := userapp.NewGetUserByUsernameUseCase(repo)
@@ -32,8 +43,8 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 	unbanUserUC := userapp.NewUnbanUserUseCase(repo)
 	loginUC := userapp.NewLoginUseCase(repo, jwtSvc)
 
-	// Handlers
-	authHandler := NewAuthHandler(loginUC, createUserUC)
+	// ── Handlers ───────────────────────────────────────────────────────────────
+	authHandler := NewAuthHandler(loginUC, createUserUC, issueRT, refreshRT, revokeRT)
 	userHandler := NewUserHandler(
 		createUserUC, getUserByIDUC, getUserByUsernameUC, searchByUsernameUC,
 		listUsersUC,
@@ -41,14 +52,16 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 		banUserUC, unbanUserUC,
 	)
 
-	// Public auth routes
+	// ── Public auth routes ──────────────────────────────────────────────────────
 	r.Route("/auth", func(r chi.Router) {
 		r.Use(ratelimit.LoginRateLimit)
 		r.Post("/login", authHandler.Login)
 		r.Post("/register", authHandler.Register)
+		r.Post("/refresh", authHandler.Refresh) // rate-limited via LoginRateLimit
+		r.Post("/logout", authHandler.Logout)   // best-effort, always 204
 	})
 
-	// Protected routes (authenticated + not banned)
+	// ── Protected routes (authenticated + not banned) ──────────────────────────
 	r.Group(func(r chi.Router) {
 		r.Use(authmw.JWTAuth(jwtSvc))
 		r.Use(authmw.LoadUser(repo)) // loads Banned flag and fresh Role from DB
@@ -83,3 +96,6 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 		})
 	})
 }
+
+// ensure RefreshTokenRepository is used (avoid unused import)
+var _ refreshtokendomain.RefreshTokenRepository = (*refreshtokeninfra.MySQLRefreshTokenRepository)(nil)
