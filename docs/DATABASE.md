@@ -11,92 +11,92 @@ Ubicación de migraciones: `deployments/database/init/`
 ```mermaid
 erDiagram
     users {
-        CHAR(36)    id PK
+        CHAR(36) id PK
         VARCHAR(50) username UK
         VARCHAR(255) email UK
         VARCHAR(255) password_hash
-        ENUM        role
-        INT         points
-        BOOLEAN     banned
-        TIMESTAMP   banned_at
-        TIMESTAMP   created_at
-        TIMESTAMP   updated_at
+        ENUM role
+        INT points
+        BOOLEAN banned
+        TIMESTAMP banned_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
     }
 
     events {
-        CHAR(36)    id PK
+        CHAR(36) id PK
         VARCHAR(100) name
-        TEXT        description
-        INT         max_team_size
-        ENUM        status
-        TIMESTAMP   starts_at
-        TIMESTAMP   ends_at
-        TIMESTAMP   created_at
-        TIMESTAMP   updated_at
+        TEXT description
+        INT max_team_size
+        ENUM status
+        TIMESTAMP starts_at
+        TIMESTAMP ends_at
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
     }
 
     event_teams {
-        CHAR(36)    id PK
-        CHAR(36)    event_id FK
+        CHAR(36) id PK
+        CHAR(36) event_id FK
         VARCHAR(100) name
         VARCHAR(255) join_secret_hash
-        INT         score
-        TIMESTAMP   created_at
-        TIMESTAMP   updated_at
+        INT score
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
     }
 
     event_team_members {
-        CHAR(36)    event_team_id PK-FK
-        CHAR(36)    user_id PK-FK
-        ENUM        role
-        TIMESTAMP   joined_at
+        CHAR(36) event_team_id PK
+        CHAR(36) user_id PK
+        ENUM role
+        TIMESTAMP joined_at
     }
 
     challenges {
-        CHAR(36)    id PK
-        CHAR(36)    event_id FK
+        CHAR(36) id PK
+        CHAR(36) event_id FK
         VARCHAR(255) title
-        TEXT        description
+        TEXT description
         VARCHAR(64) category
-        INT         points
+        INT points
         VARCHAR(32) difficulty
-        BOOLEAN     visible
-        DATETIME    created_at
-        DATETIME    updated_at
+        BOOLEAN visible
+        DATETIME created_at
+        DATETIME updated_at
     }
 
     flags {
-        CHAR(36)    id PK
-        CHAR(36)    challenge_id UK-FK
-        CHAR(64)    hash
-        DATETIME    created_at
+        CHAR(36) id PK
+        CHAR(36) challenge_id UK
+        CHAR(64) hash
+        DATETIME created_at
     }
 
     solves {
-        CHAR(36)    id PK
-        CHAR(36)    challenge_id FK
-        CHAR(36)    event_team_id FK
-        CHAR(36)    user_id
-        DATETIME    solved_at
+        CHAR(36) id PK
+        CHAR(36) challenge_id FK
+        CHAR(36) event_team_id FK
+        CHAR(36) user_id
+        DATETIME solved_at
     }
 
     refresh_tokens {
-        CHAR(36)    id PK
-        CHAR(36)    user_id FK
-        CHAR(64)    token_hash UK
-        TIMESTAMP   expires_at
-        TIMESTAMP   created_at
-        TIMESTAMP   revoked_at
+        CHAR(36) id PK
+        CHAR(36) user_id FK
+        CHAR(64) token_hash UK
+        TIMESTAMP expires_at
+        TIMESTAMP created_at
+        TIMESTAMP revoked_at
     }
 
-    users ||--o{ event_team_members : "pertenece a"
-    event_teams ||--o{ event_team_members : "tiene"
-    events ||--o{ event_teams : "contiene"
-    events ||--o{ challenges : "tiene"
-    challenges ||--o| flags : "tiene"
-    challenges ||--o{ solves : "resuelto en"
-    event_teams ||--o{ solves : "resuelve"
-    users ||--o{ refresh_tokens : "posee"
+    users ||--o{ event_team_members : pertenece
+    event_teams ||--o{ event_team_members : tiene
+    events ||--o{ event_teams : contiene
+    events ||--o{ challenges : tiene
+    challenges ||--o| flags : tiene
+    challenges ||--o{ solves : resuelto_en
+    event_teams ||--o{ solves : resuelve
+    users ||--o{ refresh_tokens : posee
 ```
 
 ---
