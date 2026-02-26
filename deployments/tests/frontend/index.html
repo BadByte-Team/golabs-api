@@ -2710,13 +2710,6 @@
       navigator.clipboard.writeText(state.accessToken).then(() => toast('Token copiado', 'ok'));
     }
 
-    // ══════════════════════════════════════════════════════ JWT UTILS
-    function parseJwt(token) {
-      try {
-        return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      } catch { return {}; }
-    }
-
     // ══════════════════════════════════════════════════════ LOGIN
     function toggleServerField() {
       document.getElementById('srv-toggle').classList.toggle('open');
@@ -2749,9 +2742,8 @@
         try { data = await res.json(); } catch { }
 
         if (res.ok && data.access_token) {
-          const payload = parseJwt(data.access_token);
-          const uname = data.user?.username || payload.username || ident;
-          const role = data.user?.role || payload.role || '';
+          const uname = data.user?.username || ident;
+          const role = data.user?.role || 'user';
           setTokens(data.access_token, data.refresh_token || '', uname, role);
           toast('Sesión iniciada correctamente', 'ok');
           goApp();
