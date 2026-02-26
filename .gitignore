@@ -1,12 +1,13 @@
-volumes
+# Archivos de entorno y secrets — NUNCA commitear
 .env
+deployments/database/.env
 
-docker-compose.yml
-Dockerfile
-Dockerfile
-Makefile
+# Volúmenes de Docker
+volumes/
 
-./Dockerfile
-./Dockerfile
-./docker-compose.yml
-./Makefile
+# Binario compilado localmente
+api
+bin/
+
+# Herramienta de desarrollo (air)
+tmp/

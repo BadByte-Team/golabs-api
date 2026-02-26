@@ -1,0 +1,90 @@
+services:
+
+  # ── Base de datos ────────────────────────────────────────────────────────────
+  # Solo existe en backend-net. Nunca es alcanzable desde la UI ni desde Internet.
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
+      MARIADB_DATABASE: ${DB_NAME:-golabs}
+      MARIADB_USER: ${DB_USER:-golabs}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    # Sin 'ports': la BD no es accesible desde el host ni desde otras redes.
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./deployments/database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-net
+
+  # ── API ──────────────────────────────────────────────────────────────────────
+  # Conectada a backend-net (puede hablar con la BD) y frontend-net (recibe requests de la UI).
+  # No está en public-net: Internet no puede alcanzarla directamente.
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # Sin 'ports': la API no se expone al host directamente.
+    # El tráfico entra solo desde la UI a través de frontend-net.
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-golabs}
+      DB_USER: ${DB_USER:-golabs}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - frontend-net
+
+  # ── UI / Reverse proxy ───────────────────────────────────────────────────────
+  # Único punto de entrada desde Internet. Está en frontend-net (habla con la API)
+  # y en public-net (recibe tráfico externo). NO tiene acceso a la BD.
+  #
+  # Reemplazar 'nginx:alpine' con la imagen de tu frontend cuando esté lista.
+  # Si tu frontend es una SPA (React, Vue, etc.), el proxy pasa /api/* a la API
+  # y sirve los archivos estáticos del frontend desde el mismo contenedor.
+  ui:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"   # habilitar cuando se agregue SSL
+    volumes:
+      - ./deployments/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deployments/tests/frontend:/usr/share/nginx/html:ro
+      # SSL (descomentar cuando se configure):
+      # - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - api
+    networks:
+      - frontend-net
+      - public-net
+
+networks:
+  # Red privada entre API y BD. Sin acceso externo.
+  backend-net:
+    driver: bridge
+    internal: true   # 'internal: true' → sin salida a Internet desde esta red
+
+  # Red privada entre UI y API. Sin acceso externo.
+  frontend-net:
+    driver: bridge
+    internal: true
+
+  # Red pública. Solo la UI está aquí; es el único punto de entrada desde Internet.
+  public-net:
+    driver: bridge
+
+volumes:
+  db_data:

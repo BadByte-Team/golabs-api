@@ -1,0 +1,3426 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GoLabs — API Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080b10;
+      --surface: #0d1117;
+      --card: #111722;
+      --card2: #161d2a;
+      --border: #1e2736;
+      --border2: #263040;
+      --accent: #3b7fff;
+      --accent-dim: rgba(59, 127, 255, .12);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, .12);
+      --amber: #f59e0b;
+      --amber-dim: rgba(245, 158, 11, .12);
+      --red: #ef4444;
+      --red-dim: rgba(239, 68, 68, .12);
+      --purple: #a78bfa;
+      --text: #cdd5e0;
+      --text-dim: #8899aa;
+      --text-faint: #4a5568;
+      --font: 'IBM Plex Sans', sans-serif;
+      --mono: 'IBM Plex Mono', monospace;
+      --r: 6px;
+      --r2: 10px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ══ SCROLLBARS ════════════════════════════════════════════════ */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--border2) transparent;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 99px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-faint);
+    }
+
+    /* ══ PAGES ═════════════════════════════════════════════════════ */
+    .page {
+      display: none;
+      width: 100%;
+      height: 100vh;
+    }
+
+    .page.active {
+      display: flex;
+    }
+
+    /* ══ LOGIN ═════════════════════════════════════════════════════ */
+    #page-login {
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+      flex-direction: column;
+    }
+
+    .login-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 700px 400px at 15% 50%, rgba(59, 127, 255, .07) 0%, transparent 70%),
+        radial-gradient(ellipse 500px 500px at 85% 20%, rgba(34, 197, 94, .04) 0%, transparent 70%);
+    }
+
+    .login-grid {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 44px 44px;
+      opacity: .28;
+    }
+
+    .login-box {
+      position: relative;
+      width: 400px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      padding: 42px 40px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .55), 0 0 0 1px rgba(59, 127, 255, .06);
+      animation: loginIn .4s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    @keyframes loginIn {
+      from {
+        opacity: 0;
+        transform: translateY(22px) scale(.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 34px;
+    }
+
+    .login-logo-mark {
+      width: 38px;
+      height: 38px;
+      background: var(--accent);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 14px;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(59, 127, 255, .4);
+      flex-shrink: 0;
+    }
+
+    .login-logo-text h1 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .login-logo-text p {
+      font-size: 10.5px;
+      color: var(--text-faint);
+      font-family: var(--mono);
+      margin-top: 1px;
+    }
+
+    .login-title {
+      font-size: 19px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .login-sub {
+      font-size: 12.5px;
+      color: var(--text-dim);
+      margin-bottom: 30px;
+    }
+
+    .login-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 16px;
+    }
+
+    .login-field label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-dim);
+    }
+
+    .login-field input {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      padding: 10px 12px;
+      outline: none;
+      width: 100%;
+      transition: all .15s;
+    }
+
+    .login-field input:focus {
+      border-color: var(--accent);
+      background: rgba(59, 127, 255, .04);
+      box-shadow: 0 0 0 3px rgba(59, 127, 255, .1);
+    }
+
+    .login-field input::placeholder {
+      color: var(--text-faint);
+    }
+
+    .login-server-toggle {
+      font-size: 11px;
+      color: var(--text-faint);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      user-select: none;
+      transition: color .15s;
+      margin-bottom: 20px;
+    }
+
+    .login-server-toggle:hover {
+      color: var(--text-dim);
+    }
+
+    .login-server-toggle svg {
+      transition: transform .2s;
+    }
+
+    .login-server-toggle.open svg {
+      transform: rotate(180deg);
+    }
+
+    .login-server-field {
+      display: none;
+      margin-top: -12px;
+      margin-bottom: 20px;
+    }
+
+    .login-server-field.open {
+      display: block;
+    }
+
+    .login-submit {
+      width: 100%;
+      padding: 11px;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--r);
+      color: #fff;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .login-submit:hover {
+      background: #5a8fff;
+      box-shadow: 0 4px 20px rgba(59, 127, 255, .35);
+      transform: translateY(-1px);
+    }
+
+    .login-submit:active {
+      transform: none;
+    }
+
+    .login-submit:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .login-error {
+      margin-top: 14px;
+      padding: 9px 12px;
+      background: var(--red-dim);
+      border: 1px solid rgba(239, 68, 68, .25);
+      border-radius: var(--r);
+      font-size: 12px;
+      color: var(--red);
+      display: none;
+    }
+
+    .login-error.show {
+      display: block;
+      animation: shake .3s ease;
+    }
+
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      20% {
+        transform: translateX(-6px);
+      }
+
+      60% {
+        transform: translateX(6px);
+      }
+    }
+
+    .login-footer {
+      margin-top: 24px;
+      text-align: center;
+      font-size: 11.5px;
+      color: var(--text-faint);
+    }
+
+    .login-footer a {
+      color: var(--text-dim);
+      cursor: pointer;
+      text-decoration: none;
+      transition: color .15s;
+    }
+
+    .login-footer a:hover {
+      color: var(--accent);
+    }
+
+    .btn-spinner {
+      display: inline-block;
+      width: 13px;
+      height: 13px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ══ APP LAYOUT ════════════════════════════════════════════════ */
+    #page-app {
+      flex-direction: row;
+    }
+
+    /* ══ SIDEBAR ═══════════════════════════════════════════════════ */
+    aside {
+      width: 232px;
+      min-width: 232px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .sidebar-logo {
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      background: var(--accent);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 12px;
+      color: #fff;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px rgba(59, 127, 255, .3);
+    }
+
+    .logo-text h1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: .3px;
+    }
+
+    .logo-text p {
+      font-size: 10px;
+      color: var(--text-faint);
+      font-family: var(--mono);
+      margin-top: 1px;
+    }
+
+    nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 0;
+      min-height: 0;
+    }
+
+    .nav-group {
+      margin-bottom: 4px;
+    }
+
+    .nav-label {
+      padding: 10px 18px 5px;
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+    }
+
+    nav button {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      padding: 8px 18px;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-family: var(--font);
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: all .15s;
+      text-align: left;
+      position: relative;
+    }
+
+    nav button:hover {
+      background: rgba(255, 255, 255, .03);
+      color: var(--text);
+    }
+
+    nav button.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    nav button.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 4px;
+      bottom: 4px;
+      width: 2px;
+      background: var(--accent);
+      border-radius: 0 2px 2px 0;
+    }
+
+    .nav-icon {
+      width: 16px;
+      height: 16px;
+      opacity: .6;
+      flex-shrink: 0;
+    }
+
+    nav button.active .nav-icon {
+      opacity: 1;
+    }
+
+    .auth-widget {
+      margin: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r2);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .auth-widget-header {
+      padding: 10px 12px 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .auth-widget-header span {
+      font-size: 10px;
+      color: var(--text-faint);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 6px var(--red);
+      transition: all .3s;
+    }
+
+    .status-dot.connected {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    .auth-user-area {
+      padding: 8px 12px 4px;
+    }
+
+    .auth-user-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .auth-user-role {
+      font-size: 10px;
+      color: var(--text-faint);
+      font-family: var(--mono);
+      margin-top: 1px;
+    }
+
+    .auth-token-area {
+      padding: 6px 12px 8px;
+    }
+
+    .auth-token-label {
+      font-size: 10px;
+      color: var(--text-faint);
+      margin-bottom: 3px;
+    }
+
+    .auth-token-val {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      word-break: break-all;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .auth-token-val.has-token {
+      color: var(--green);
+    }
+
+    .auth-actions {
+      padding: 6px 12px 10px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .auth-btn {
+      flex: 1;
+      padding: 6px 0;
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      background: none;
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .auth-btn:hover {
+      background: rgba(255, 255, 255, .04);
+      color: var(--text);
+    }
+
+    .auth-btn.danger {
+      color: var(--red);
+      border-color: var(--red-dim);
+    }
+
+    .auth-btn.danger:hover {
+      background: var(--red-dim);
+    }
+
+    .auth-btn:disabled {
+      opacity: .3;
+      cursor: not-allowed;
+    }
+
+    /* ══ MAIN ══════════════════════════════════════════════════════ */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .topbar {
+      padding: 0 24px;
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .topbar-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .topbar-desc {
+      font-size: 11px;
+      color: var(--text-faint);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .separator {
+      width: 1px;
+      height: 18px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .base-url-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .base-url-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      white-space: nowrap;
+    }
+
+    .base-url-input {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 5px 10px;
+      border-radius: var(--r);
+      outline: none;
+      width: 240px;
+      transition: border-color .15s;
+    }
+
+    .base-url-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* ══ WORKSPACE ═════════════════════════════════════════════════ */
+    .workspace {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* ══ FORM PANEL ════════════════════════════════════════════════ */
+    .form-panel-wrap {
+      width: 360px;
+      min-width: 280px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .form-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    /* ══ ENDPOINT CARDS ════════════════════════════════════════════ */
+    .ep-card {
+      border: 1px solid var(--border);
+      border-radius: var(--r2);
+      background: var(--card);
+      overflow: hidden;
+      transition: border-color .2s;
+    }
+
+    .ep-card:hover {
+      border-color: var(--border2);
+    }
+
+    .ep-card.expanded {
+      border-color: rgba(59, 127, 255, .4);
+    }
+
+    .ep-header {
+      padding: 10px 13px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s;
+    }
+
+    .ep-header:hover {
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .method-badge {
+      font-family: var(--mono);
+      font-size: 9.5px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      min-width: 44px;
+      text-align: center;
+      letter-spacing: .3px;
+      flex-shrink: 0;
+    }
+
+    .GET {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(34, 197, 94, .2);
+    }
+
+    .POST {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid rgba(59, 127, 255, .2);
+    }
+
+    .PUT {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(245, 158, 11, .2);
+    }
+
+    .PATCH {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(245, 158, 11, .2);
+    }
+
+    .DELETE {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, .2);
+    }
+
+    .ep-path {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--text);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ep-chevron {
+      width: 14px;
+      height: 14px;
+      color: var(--text-faint);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+
+    .ep-card.expanded .ep-chevron {
+      transform: rotate(180deg);
+    }
+
+    .ep-body {
+      display: none;
+      padding: 4px 13px 13px;
+      flex-direction: column;
+      gap: 9px;
+      border-top: 1px solid var(--border);
+    }
+
+    .ep-body.open {
+      display: flex;
+    }
+
+    /* ── Form elements ── */
+    .fg {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .fg label {
+      font-size: 10px;
+      color: var(--text-faint);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+
+    .inp,
+    textarea,
+    select {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 12.5px;
+      padding: 7px 10px;
+      border-radius: var(--r);
+      outline: none;
+      width: 100%;
+      transition: border-color .15s, background .15s;
+    }
+
+    .inp:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+      background: rgba(59, 127, 255, .04);
+    }
+
+    .inp::placeholder,
+    textarea::placeholder {
+      color: var(--text-faint);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      line-height: 1.5;
+    }
+
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%234a5568' stroke-width='2'%3E%3Cpath stroke-linecap='round' d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 9px center;
+      padding-right: 28px;
+    }
+
+    select option {
+      background: var(--card2);
+    }
+
+    .row-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .row-group .fg {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .ep-note {
+      font-size: 11px;
+      color: var(--text-faint);
+      line-height: 1.5;
+      padding: 4px 0 4px 10px;
+      border-left: 2px solid var(--border2);
+    }
+
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .range-wrap input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 3px;
+      background: var(--border2);
+      border-radius: 99px;
+      outline: none;
+      padding: 0;
+      border: none;
+    }
+
+    .range-wrap input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid var(--bg);
+    }
+
+    .range-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      min-width: 28px;
+      text-align: right;
+    }
+
+    /* ── Date picker ── */
+    .date-wrapper {
+      position: relative;
+    }
+
+    .date-wrapper input[type="text"] {
+      cursor: pointer;
+      padding-right: 32px;
+    }
+
+    .date-wrapper .cal-icon {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--text-faint);
+    }
+
+    .calendar-popup {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 100;
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--r2);
+      padding: 12px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, .5);
+      min-width: 240px;
+      display: none;
+    }
+
+    .calendar-popup.open {
+      display: block;
+      animation: fadeUp .15s ease;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .cal-header span {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .cal-nav {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      transition: all .15s;
+    }
+
+    .cal-nav:hover {
+      background: var(--border2);
+      color: var(--text);
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+
+    .cal-dow {
+      text-align: center;
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-faint);
+      padding: 3px 0;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .cal-day {
+      text-align: center;
+      font-size: 11.5px;
+      color: var(--text-dim);
+      padding: 5px 0;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all .15s;
+    }
+
+    .cal-day:hover:not(.empty) {
+      background: var(--border2);
+      color: var(--text);
+    }
+
+    .cal-day.today {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .cal-day.selected {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .cal-day.empty {
+      cursor: default;
+    }
+
+    .cal-time {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cal-time label {
+      font-size: 10px;
+      color: var(--text-faint);
+      flex-shrink: 0;
+    }
+
+    .cal-time input {
+      flex: 1;
+      padding: 5px 8px;
+      font-size: 11.5px;
+      font-family: var(--mono);
+    }
+
+    .cal-footer {
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .cal-btn {
+      padding: 5px 12px;
+      border-radius: var(--r);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: var(--font);
+      border: none;
+      transition: all .15s;
+    }
+
+    .cal-btn.cancel {
+      background: var(--card2);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+
+    .cal-btn.cancel:hover {
+      color: var(--text);
+    }
+
+    .cal-btn.apply {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .cal-btn.apply:hover {
+      background: #5a8fff;
+    }
+
+    .send-btn {
+      padding: 9px 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--r);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .send-btn:hover {
+      background: #5a8fff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(59, 127, 255, .3);
+    }
+
+    .send-btn:active {
+      transform: none;
+    }
+
+    /* ══ RESPONSE PANEL ════════════════════════════════════════════ */
+    .response-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .res-topbar {
+      padding: 0 20px;
+      height: 44px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .res-label {
+      font-size: 11px;
+      color: var(--text-faint);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      flex: 1;
+    }
+
+    .status-chip {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: var(--r);
+      display: none;
+    }
+
+    .s2xx {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(34, 197, 94, .2);
+    }
+
+    .s4xx {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border: 1px solid rgba(245, 158, 11, .2);
+    }
+
+    .s5xx {
+      background: var(--red-dim);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, .2);
+    }
+
+    .res-time {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--text-faint);
+    }
+
+    .copy-btn {
+      padding: 5px 11px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      color: var(--text-faint);
+      font-family: var(--font);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--border2);
+      color: var(--text);
+      background: rgba(255, 255, 255, .03);
+    }
+
+    .res-tabs {
+      display: flex;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .res-tab {
+      padding: 8px 14px;
+      font-size: 11.5px;
+      color: var(--text-faint);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .15s;
+      user-select: none;
+    }
+
+    .res-tab:hover {
+      color: var(--text);
+    }
+
+    .res-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .res-body-wrap {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      min-height: 0;
+    }
+
+    .res-pane {
+      display: none;
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+
+    .res-pane.active {
+      display: block;
+    }
+
+    pre.json-view {
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.75;
+      background: var(--bg);
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 100%;
+    }
+
+    .jk {
+      color: #79c0ff;
+    }
+
+    .js {
+      color: #a5d6ff;
+    }
+
+    .jn {
+      color: #ff7b72;
+    }
+
+    .jb {
+      color: #ffa657;
+    }
+
+    .placeholder-msg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      flex-direction: column;
+      gap: 10px;
+      color: var(--text-faint);
+    }
+
+    .placeholder-msg svg {
+      opacity: .2;
+    }
+
+    .placeholder-msg p {
+      font-size: 12px;
+    }
+
+    .headers-view {
+      padding: 20px;
+    }
+
+    .headers-row {
+      display: flex;
+      gap: 12px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .headers-row:last-child {
+      border-bottom: none;
+    }
+
+    .hdr-key {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      min-width: 180px;
+    }
+
+    .hdr-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-faint);
+      flex: 1;
+      word-break: break-word;
+    }
+
+    .loading-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      display: none;
+      background: linear-gradient(90deg, transparent, var(--accent), var(--green), transparent);
+      animation: scan 1.2s linear infinite;
+    }
+
+    .loading-line.active {
+      display: block;
+    }
+
+    @keyframes scan {
+      from {
+        transform: translateX(-100%);
+      }
+
+      to {
+        transform: translateX(100%);
+      }
+    }
+
+    /* ══ HISTORY ═══════════════════════════════════════════════════ */
+    .history-strip {
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 7px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      overflow-x: auto;
+      min-height: 38px;
+    }
+
+    .history-strip::-webkit-scrollbar {
+      height: 3px;
+    }
+
+    .hist-label {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      white-space: nowrap;
+    }
+
+    .hist-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 9px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-size: 10.5px;
+      font-family: var(--mono);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .15s;
+      flex-shrink: 0;
+    }
+
+    .hist-item:hover {
+      border-color: var(--border2);
+    }
+
+    .hist-item .hist-status {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .hist-ok .hist-status {
+      background: var(--green-dim);
+      color: var(--green);
+    }
+
+    .hist-err .hist-status {
+      background: var(--red-dim);
+      color: var(--red);
+    }
+
+    .hist-warn .hist-status {
+      background: var(--amber-dim);
+      color: var(--amber);
+    }
+
+    /* ══ DOCS PANEL ════════════════════════════════════════════════ */
+    .docs-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    .docs-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px;
+      min-height: 0;
+    }
+
+    .docs-hero {
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .docs-hero h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .docs-hero p {
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      max-width: 640px;
+    }
+
+    .docs-badges {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .docs-badge {
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: 10.5px;
+      font-weight: 600;
+      font-family: var(--mono);
+      border: 1px solid;
+    }
+
+    .badge-v {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-color: rgba(59, 127, 255, .25);
+    }
+
+    .badge-json {
+      background: var(--green-dim);
+      color: var(--green);
+      border-color: rgba(34, 197, 94, .25);
+    }
+
+    .badge-jwt {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border-color: rgba(245, 158, 11, .25);
+    }
+
+    .badge-rest {
+      background: rgba(167, 139, 250, .1);
+      color: var(--purple);
+      border-color: rgba(167, 139, 250, .25);
+    }
+
+    .docs-section {
+      margin-bottom: 36px;
+    }
+
+    .docs-section-title {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .docs-section-title::before {
+      content: '';
+      width: 3px;
+      height: 13px;
+      background: var(--accent);
+      border-radius: 99px;
+    }
+
+    .ov-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+      gap: 10px;
+    }
+
+    .ov-card {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: var(--r2);
+      padding: 14px 15px;
+    }
+
+    .ov-icon {
+      margin-bottom: 8px;
+    }
+
+    .ov-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .ov-desc {
+      font-size: 11px;
+      color: var(--text-faint);
+      line-height: 1.5;
+    }
+
+    .auth-flow-diagram {
+      display: flex;
+      align-items: center;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: var(--r2);
+      padding: 14px 18px;
+    }
+
+    .af-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      min-width: 90px;
+    }
+
+    .af-box {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      padding: 5px 10px;
+      font-size: 10.5px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .af-box.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-color: rgba(59, 127, 255, .3);
+    }
+
+    .af-label {
+      font-size: 9.5px;
+      color: var(--text-faint);
+      text-align: center;
+    }
+
+    .af-arrow {
+      font-size: 18px;
+      color: var(--text-faint);
+      padding: 0 6px;
+      flex-shrink: 0;
+      align-self: center;
+      margin-bottom: 18px;
+    }
+
+    .doc-ep {
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--r2);
+      background: var(--card);
+      overflow: hidden;
+    }
+
+    .doc-ep.open {
+      border-color: rgba(59, 127, 255, .3);
+    }
+
+    .doc-ep-head {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: background .15s;
+    }
+
+    .doc-ep-head:hover {
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .doc-ep-path {
+      font-family: var(--mono);
+      font-size: 12px;
+      flex: 1;
+    }
+
+    .doc-ep-sum {
+      font-size: 11.5px;
+      color: var(--text-dim);
+    }
+
+    .doc-lock {
+      font-size: 11px;
+    }
+
+    .doc-ep-body {
+      display: none;
+      padding: 0 14px 14px;
+      flex-direction: column;
+      gap: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .doc-ep.open .doc-ep-body {
+      display: flex;
+    }
+
+    .doc-desc {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      padding-top: 4px;
+    }
+
+    .dsub {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 6px;
+    }
+
+    .code-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 12px 14px;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      line-height: 1.7;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    .code-block .cb-copy {
+      position: absolute;
+      top: 7px;
+      right: 8px;
+      padding: 3px 8px;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-faint);
+      font-size: 10px;
+      cursor: pointer;
+      font-family: var(--font);
+      transition: all .15s;
+    }
+
+    .code-block .cb-copy:hover {
+      color: var(--text);
+    }
+
+    .params-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .params-table th {
+      text-align: left;
+      padding: 6px 10px;
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .params-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .params-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .p-name {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+    }
+
+    .p-type {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-faint);
+    }
+
+    .p-req {
+      font-size: 10px;
+    }
+
+    .p-req.yes {
+      color: var(--red);
+    }
+
+    .p-req.no {
+      color: var(--text-faint);
+    }
+
+    .p-desc {
+      font-size: 11.5px;
+      color: var(--text-dim);
+    }
+
+    .rc-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .rc {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 6px 10px;
+      border-radius: var(--r);
+      background: var(--bg);
+      border: 1px solid var(--border);
+    }
+
+    .rc-code {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      min-width: 32px;
+    }
+
+    .rc-2 .rc-code {
+      color: var(--green);
+    }
+
+    .rc-4 .rc-code {
+      color: var(--amber);
+    }
+
+    .rc-5 .rc-code {
+      color: var(--red);
+    }
+
+    .rc-desc {
+      font-size: 11.5px;
+      color: var(--text-dim);
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 5px;
+      color: var(--accent);
+    }
+
+    /* ══ TOAST ═════════════════════════════════════════════════════ */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 9px 16px;
+      border-radius: var(--r2);
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--card2);
+      border: 1px solid var(--border2);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, .5);
+      transition: all .25s cubic-bezier(.4, 0, .2, 1);
+      opacity: 0;
+      transform: translateY(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #toast.ok {
+      border-left: 3px solid var(--green);
+    }
+
+    #toast.err {
+      border-left: 3px solid var(--red);
+    }
+
+    #toast.warn {
+      border-left: 3px solid var(--amber);
+    }
+
+    .toast-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    #toast.ok .toast-dot {
+      background: var(--green);
+    }
+
+    #toast.err .toast-dot {
+      background: var(--red);
+    }
+
+    #toast.warn .toast-dot {
+      background: var(--amber);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══════════════════════════════════════════════════ LOGIN PAGE -->
+  <div id="page-login" class="page">
+    <div class="login-bg"></div>
+    <div class="login-grid"></div>
+    <div class="login-box">
+      <div class="login-logo">
+        <div class="login-logo-mark">GL</div>
+        <div class="login-logo-text">
+          <h1>GoLabs API Console</h1>
+          <p>v1.0 — Entorno de pruebas</p>
+        </div>
+      </div>
+      <h2 class="login-title">Iniciar sesión</h2>
+      <p class="login-sub">Ingrese sus credenciales para acceder a la consola.</p>
+      <div class="login-field">
+        <label>Identificador <span style="font-weight:400;color:var(--text-faint)">(correo o nombre de
+            usuario)</span></label>
+        <input type="text" id="li-ident" placeholder="admin@golabs.io" autocomplete="username">
+      </div>
+      <div class="login-field">
+        <label>Contraseña</label>
+        <input type="password" id="li-pass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="login-server-toggle" id="srv-toggle" onclick="toggleServerField()">
+        <svg width="10" height="10" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" d="M4 6l4 4 4-4" />
+        </svg>
+        Configurar servidor
+      </div>
+      <div class="login-server-field" id="srv-field">
+        <div class="login-field" style="margin-bottom:0">
+          <label>Base URL del servidor</label>
+          <input type="text" id="li-server" value="http://localhost:8080/api/v1"
+            placeholder="https://api.golabs.io/api/v1">
+        </div>
+      </div>
+      <button class="login-submit" id="login-btn" onclick="doLogin()">Acceder</button>
+      <div class="login-error" id="login-error"></div>
+      <div class="login-footer">
+        ¿Sin cuenta? <a onclick="continueNoAuth()">Registrarse en la consola</a>
+        &nbsp;·&nbsp;
+        <a onclick="continueNoAuth()">Continuar sin sesión</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ APP PAGE -->
+  <div id="page-app" class="page">
+
+    <!-- SIDEBAR -->
+    <aside>
+      <div class="sidebar-logo">
+        <div class="logo-mark">GL</div>
+        <div class="logo-text">
+          <h1>GoLabs API</h1>
+          <p>Console v1.0</p>
+        </div>
+      </div>
+      <nav>
+        <div class="nav-group">
+          <div class="nav-label">Sistema</div>
+          <button class="active" onclick="showSection('health')" id="nav-health">
+            <svg class="nav-icon" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" d="M1 8h3l2-5 2 9 2-5 2 3 1-2h2" />
+            </svg>
+            Health
+          </button>
+        </div>
+        <div class="nav-group">
+          <div class="nav-label">Autenticación</div>
+          <button onclick="showSection('auth')" id="nav-auth">
+            <svg class="nav-icon" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="7" width="10" height="7" rx="1.5" />
+              <path stroke-linecap="round" d="M5 7V5a3 3 0 016 0v2" />
+            </svg>
+            Autenticación
+          </button>
+        </div>
+        <div class="nav-group">
+          <div class="nav-label">Recursos</div>
+          <button onclick="showSection('users')" id="nav-users">
+            <svg class="nav-icon" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="5.5" r="2.5" />
+              <path stroke-linecap="round" d="M2.5 13.5c0-2.761 2.462-5 5.5-5s5.5 2.239 5.5 5" />
+            </svg>
+            Users
+          </button>
+          <button onclick="showSection('events')" id="nav-events">
+            <svg class="nav-icon" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="3.5" width="12" height="10" rx="1.5" />
+              <path stroke-linecap="round" d="M5 2v3M11 2v3M2 7h12" />
+            </svg>
+            Events
+          </button>
+          <button onclick="showSection('teams')" id="nav-teams">
+            <svg class="nav-icon" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+              <circle cx="5.5" cy="5.5" r="2" />
+              <circle cx="10.5" cy="5.5" r="2" />
+              <path stroke-linecap="round"
+                d="M1 13c0-2.209 2.015-4 4.5-4s4.5 1.791 4.5 4M9.5 11.5c.476-.313 1.007-.5 1.5-.5 1.933 0 3.5 1.343 3.5 3" />
+            </svg>
+            Teams
+          </button>
+          <button onclick="showSection('challenges')" id="nav-challenges">
+            <svg class="nav-icon" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" d="M3 3h2l1 4H3m0 0L2 9h12l-1-2H7M3 7h10M6 9l-.5 4M10 9l.5 4" />
+            </svg>
+            Challenges
+          </button>
+        </div>
+        <div class="nav-group">
+          <div class="nav-label">Administración</div>
+          <button onclick="showSection('admin')" id="nav-admin">
+            <svg class="nav-icon" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+              <circle cx="8" cy="8" r="2.5" />
+              <path stroke-linecap="round"
+                d="M8 1.5v1.25M8 13.25V14.5M14.5 8h-1.25M2.75 8H1.5M12.3 3.7l-.88.88M4.58 11.42l-.88.88M12.3 12.3l-.88-.88M4.58 4.58l-.88-.88" />
+            </svg>
+            Admin
+          </button>
+        </div>
+        <div class="nav-group">
+          <div class="nav-label">Referencia</div>
+          <button onclick="showSection('docs')" id="nav-docs">
+            <svg class="nav-icon" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" d="M3 2h8l3 3v10H3V2zM11 2v3h3M5 7h6M5 9h6M5 11h4" />
+            </svg>
+            Documentación
+          </button>
+        </div>
+      </nav>
+      <div class="auth-widget">
+        <div class="auth-widget-header">
+          <span>Sesión</span>
+          <div class="status-dot" id="status-dot"></div>
+        </div>
+        <div class="auth-user-area">
+          <div class="auth-user-name" id="auth-username">Sin sesión</div>
+          <div class="auth-user-role" id="auth-role"></div>
+        </div>
+        <div class="auth-token-area">
+          <div class="auth-token-label">Token activo</div>
+          <div class="auth-token-val" id="token-preview">—</div>
+        </div>
+        <div class="auth-actions">
+          <button class="auth-btn" onclick="copyToken()" id="copy-token-btn" disabled>Copiar</button>
+          <button class="auth-btn danger" onclick="logoutToLogin()" id="logout-btn" disabled>Salir</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main>
+      <div class="topbar">
+        <div class="topbar-left">
+          <span class="topbar-title" id="section-title">Health Checks</span>
+          <div class="separator"></div>
+          <span class="topbar-desc" id="section-desc">Estado del servidor y la base de datos</span>
+        </div>
+        <div class="base-url-group">
+          <span class="base-url-label">Base URL</span>
+          <input class="base-url-input" type="text" id="base-url" value="http://localhost:8080/api/v1">
+        </div>
+      </div>
+
+      <div class="workspace">
+
+        <!-- Form panel -->
+        <div class="form-panel-wrap" id="form-panel-wrap">
+          <div class="form-panel" id="form-panel"></div>
+        </div>
+
+        <!-- Response panel -->
+        <div class="response-panel" id="response-panel">
+          <div class="res-topbar">
+            <span class="res-label">Respuesta</span>
+            <span class="status-chip" id="res-status"></span>
+            <span class="res-time" id="res-time"></span>
+            <button class="copy-btn" onclick="copyResponse()">Copiar JSON</button>
+          </div>
+          <div class="res-tabs">
+            <div class="res-tab active" onclick="switchTab('body',this)">Cuerpo</div>
+            <div class="res-tab" onclick="switchTab('headers',this)">Encabezados</div>
+            <div class="res-tab" onclick="switchTab('raw',this)">Raw</div>
+          </div>
+          <div class="res-body-wrap">
+            <div class="loading-line" id="loading-line"></div>
+            <div class="res-pane active" id="pane-body">
+              <div class="placeholder-msg" id="placeholder">
+                <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width=".8">
+                  <path stroke-linecap="round"
+                    d="M8 9h8M8 12h5M5 5h14a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+                </svg>
+                <p>Ejecute un endpoint para ver la respuesta</p>
+              </div>
+              <pre class="json-view" id="res-body" style="display:none"></pre>
+            </div>
+            <div class="res-pane" id="pane-headers">
+              <div class="headers-view" id="res-headers-view"><span style="color:var(--text-faint);font-size:12px">Sin
+                  encabezados disponibles</span></div>
+            </div>
+            <div class="res-pane" id="pane-raw">
+              <pre class="json-view" id="res-raw" style="color:var(--text-dim)">Sin datos</pre>
+            </div>
+          </div>
+          <div class="history-strip">
+            <span class="hist-label">Historial</span>
+            <div id="history-items" style="display:flex;gap:6px;"></div>
+          </div>
+        </div>
+
+        <!-- Docs panel -->
+        <div class="docs-panel" id="docs-panel" style="display:none">
+          <div class="docs-body">
+
+            <div class="docs-hero">
+              <h2>GoLabs API — Documentación</h2>
+              <p>Referencia completa de la API REST. Todos los endpoints requieren autenticación Bearer JWT salvo
+                indicación contraria. Las respuestas siempre usan <code>Content-Type: application/json</code>.</p>
+              <div class="docs-badges">
+                <span class="docs-badge badge-v">v1.0</span>
+                <span class="docs-badge badge-json">JSON</span>
+                <span class="docs-badge badge-jwt">JWT Bearer</span>
+                <span class="docs-badge badge-rest">REST</span>
+              </div>
+            </div>
+
+            <div class="docs-section">
+              <div class="docs-section-title">Descripción general</div>
+              <div class="ov-grid">
+                <div class="ov-card">
+                  <div class="ov-icon" style="color:var(--accent)"><svg width="18" height="18" fill="none"
+                      viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+                      <circle cx="8" cy="8" r="6" />
+                      <path stroke-linecap="round" d="M8 5v3l2 1.5" />
+                    </svg></div>
+                  <div class="ov-title">Base URL</div>
+                  <div class="ov-desc"><code>/api/v1</code> — Todos los endpoints se montan bajo este prefijo.</div>
+                </div>
+                <div class="ov-card">
+                  <div class="ov-icon" style="color:var(--amber)"><svg width="18" height="18" fill="none"
+                      viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+                      <rect x="3" y="7" width="10" height="7" rx="1.5" />
+                      <path stroke-linecap="round" d="M5 7V5a3 3 0 016 0v2" />
+                    </svg></div>
+                  <div class="ov-title">Autenticación</div>
+                  <div class="ov-desc">JWT de corta duración + refresh token. Header:
+                    <code>Authorization: Bearer &lt;token&gt;</code>
+                  </div>
+                </div>
+                <div class="ov-card">
+                  <div class="ov-icon" style="color:var(--green)"><svg width="18" height="18" fill="none"
+                      viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" d="M2 8h12M9 4l5 4-5 4" />
+                    </svg></div>
+                  <div class="ov-title">Formato</div>
+                  <div class="ov-desc">Peticiones y respuestas usan <code>Content-Type: application/json</code>.</div>
+                </div>
+                <div class="ov-card">
+                  <div class="ov-icon" style="color:var(--red)"><svg width="18" height="18" fill="none"
+                      viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+                      <circle cx="8" cy="8" r="6" />
+                      <path stroke-linecap="round" d="M8 5v3M8 11v.5" />
+                    </svg></div>
+                  <div class="ov-title">Errores</div>
+                  <div class="ov-desc">Siempre incluyen un campo <code>error</code> con mensaje descriptivo y un
+                    <code>code</code> opcional.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="docs-section">
+              <div class="docs-section-title">Flujo de autenticación</div>
+              <div class="auth-flow-diagram">
+                <div class="af-step">
+                  <div class="af-box">Cliente</div>
+                  <div class="af-label">Usuario</div>
+                </div>
+                <div class="af-arrow">→</div>
+                <div class="af-step">
+                  <div class="af-box active">POST /auth/login</div>
+                  <div class="af-label">Credenciales</div>
+                </div>
+                <div class="af-arrow">→</div>
+                <div class="af-step">
+                  <div class="af-box active">access_token</div>
+                  <div class="af-label">~15 min</div>
+                </div>
+                <div class="af-arrow">+</div>
+                <div class="af-step">
+                  <div class="af-box active">refresh_token</div>
+                  <div class="af-label">~7 días</div>
+                </div>
+                <div class="af-arrow">→</div>
+                <div class="af-step">
+                  <div class="af-box">POST /auth/refresh</div>
+                  <div class="af-label">Renovar</div>
+                </div>
+                <div class="af-arrow">→</div>
+                <div class="af-step">
+                  <div class="af-box">Nuevo access_token</div>
+                  <div class="af-label">Rotación automática</div>
+                </div>
+              </div>
+              <p style="font-size:11.5px;color:var(--text-faint);margin-top:10px">La consola renueva el token
+                automáticamente ante un <code>401</code> y reintenta la petición de forma transparente.</p>
+            </div>
+
+            <div class="docs-section">
+              <div class="docs-section-title">Health</div>
+              <div class="doc-ep" id="doc-live">
+                <div class="doc-ep-head" onclick="toggleDoc('doc-live')"><span class="method-badge GET">GET</span><span
+                    class="doc-ep-path">/healthz/live</span><span class="doc-ep-sum">Liveness probe</span><svg
+                    class="ep-chevron" width="13" height="13" fill="none" viewBox="0 0 16 16" stroke="currentColor"
+                    stroke-width="2">
+                    <path stroke-linecap="round" d="M4 6l4 4 4-4" />
+                  </svg></div>
+                <div class="doc-ep-body">
+                  <p class="doc-desc">Verifica que el proceso está en ejecución. No requiere autenticación.</p>
+                  <div>
+                    <div class="dsub">Respuestas</div>
+                    <div class="rc-list">
+                      <div class="rc rc-2"><span class="rc-code">200</span><span class="rc-desc">Servidor activo —
+                          <code>{"status":"ok"}</code></span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="doc-ep" id="doc-ready">
+                <div class="doc-ep-head" onclick="toggleDoc('doc-ready')"><span class="method-badge GET">GET</span><span
+                    class="doc-ep-path">/healthz/ready</span><span class="doc-ep-sum">Readiness probe</span><svg
+                    class="ep-chevron" width="13" height="13" fill="none" viewBox="0 0 16 16" stroke="currentColor"
+                    stroke-width="2">
+                    <path stroke-linecap="round" d="M4 6l4 4 4-4" />
+                  </svg></div>
+                <div class="doc-ep-body">
+                  <p class="doc-desc">Verifica la conexión a la base de datos y dependencias. No requiere autenticación.
+                  </p>
+                  <div>
+                    <div class="dsub">Respuestas</div>
+                    <div class="rc-list">
+                      <div class="rc rc-2"><span class="rc-code">200</span><span class="rc-desc">Sistema completamente
+                          operativo</span></div>
+                      <div class="rc rc-5"><span class="rc-code">503</span><span class="rc-desc">Una o más dependencias
+                          no disponibles</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="docs-section">
+              <div class="docs-section-title">Autenticación</div>
+              <div class="doc-ep" id="doc-reg">
+                <div class="doc-ep-head" onclick="toggleDoc('doc-reg')"><span class="method-badge POST">POST</span><span
+                    class="doc-ep-path">/auth/register</span><span class="doc-ep-sum">Registro</span><svg
+                    class="ep-chevron" width="13" height="13" fill="none" viewBox="0 0 16 16" stroke="currentColor"
+                    stroke-width="2">
+                    <path stroke-linecap="round" d="M4 6l4 4 4-4" />
+                  </svg></div>
+                <div class="doc-ep-body">
+                  <p class="doc-desc">Crea una nueva cuenta. No requiere autenticación.</p>
+                  <div>
+                    <div class="dsub">Body (JSON)</div>
+                    <table class="params-table">
+                      <thead>
+                        <tr>
+                          <th>Campo</th>
+                          <th>Tipo</th>
+                          <th>Req.</th>
+                          <th>Descripción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="p-name">username</td>
+                          <td class="p-type">string</td>
+                          <td class="p-req yes">Sí</td>
+                          <td class="p-desc">Mínimo 3 caracteres, único</td>
+                        </tr>
+                        <tr>
+                          <td class="p-name">email</td>
+                          <td class="p-type">string</td>
+                          <td class="p-req yes">Sí</td>
+                          <td class="p-desc">Correo válido y único</td>
+                        </tr>
+                        <tr>
+                          <td class="p-name">password</td>
+                          <td class="p-type">string</td>
+                          <td class="p-req yes">Sí</td>
+                          <td class="p-desc">Mínimo 6 caracteres</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div class="dsub">Respuestas</div>
+                    <div class="rc-list">
+                      <div class="rc rc-2"><span class="rc-code">201</span><span class="rc-desc">Usuario creado</span>
+                      </div>
+                      <div class="rc rc-4"><span class="rc-code">409</span><span class="rc-desc">Usuario o correo ya
+                          existe</span></div>
+                      <div class="rc rc-4"><span class="rc-code">422</span><span class="rc-desc">Campos inválidos</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="doc-ep" id="doc-login-d">
+                <div class="doc-ep-head" onclick="toggleDoc('doc-login-d')"><span
+                    class="method-badge POST">POST</span><span class="doc-ep-path">/auth/login</span><span
+                    class="doc-ep-sum">Inicio de sesión</span><svg class="ep-chevron" width="13" height="13" fill="none"
+                    viewBox="0 0 16 16" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" d="M4 6l4 4 4-4" />
+                  </svg></div>
+                <div class="doc-ep-body">
+                  <p class="doc-desc">Autentica al usuario y devuelve un par de tokens JWT.</p>
+                  <div>
+                    <div class="dsub">Body (JSON)</div>
+                    <table class="params-table">
+                      <thead>
+                        <tr>
+                          <th>Campo</th>
+                          <th>Tipo</th>
+                          <th>Req.</th>
+                          <th>Descripción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="p-name">identifier</td>
+                          <td class="p-type">string</td>
+                          <td class="p-req yes">Sí</td>
+                          <td class="p-desc">Correo o nombre de usuario</td>
+                        </tr>
+                        <tr>
+                          <td class="p-name">password</td>
+                          <td class="p-type">string</td>
+                          <td class="p-req yes">Sí</td>
+                          <td class="p-desc">Contraseña del usuario</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div class="dsub">Respuesta 200</div>
+                    <div class="code-block"><button class="cb-copy" onclick="cbCopy(this)">Copiar</button><span
+                        style="color:var(--text-faint)">{</span>
+                      <span class="jk">"access_token"</span>: <span class="js">"eyJhbGciOiJIUzI1NiIs..."</span>,
+                      <span class="jk">"refresh_token"</span>: <span class="js">"dGhpcyBpcyBhIHJlZnJlc2..."</span>,
+                      <span class="jk">"expires_in"</span>: <span class="jn">900</span>
+                      <span style="color:var(--text-faint)">}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="dsub">Respuestas</div>
+                    <div class="rc-list">
+                      <div class="rc rc-2"><span class="rc-code">200</span><span class="rc-desc">Autenticación exitosa —
+                          access_token y refresh_token</span></div>
+                      <div class="rc rc-4"><span class="rc-code">401</span><span class="rc-desc">Credenciales
+                          incorrectas</span></div>
+                      <div class="rc rc-4"><span class="rc-code">403</span><span class="rc-desc">Cuenta suspendida o
+                          baneada</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="doc-ep" id="doc-refresh-d">
+                <div class="doc-ep-head" onclick="toggleDoc('doc-refresh-d')"><span
+                    class="method-badge POST">POST</span><span class="doc-ep-path">/auth/refresh</span><span
+                    class="doc-ep-sum">Renovar token</span><svg class="ep-chevron" width="13" height="13" fill="none"
+                    viewBox="0 0 16 16" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" d="M4 6l4 4 4-4" />
+                  </svg></div>
+                <div class="doc-ep-body">
+                  <p class="doc-desc">Emite un nuevo access token usando el refresh token. El anterior se invalida
+                    (rotación de tokens).</p>
+                  <div>
+                    <div class="dsub">Respuestas</div>
+                    <div class="rc-list">
+                      <div class="rc rc-2"><span class="rc-code">200</span><span class="rc-desc">Nuevo par de tokens
+                          emitidos</span></div>
+                      <div class="rc rc-4"><span class="rc-code">401</span><span class="rc-desc">Refresh token inválido,
+                          expirado o ya utilizado</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="docs-section">
+              <div class="docs-section-title">Events</div>
+              <p style="font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.6">Ciclo de vida:
+                <code>draft</code> → <code>open</code> → <code>running</code> → <code>finished</code>. Solo
+                administradores pueden crear eventos y avanzar su estado.
+              </p>
+              <div class="doc-ep" id="doc-ev-list">
+                <div class="doc-ep-head" onclick="toggleDoc('doc-ev-list')"><span
+                    class="method-badge GET">GET</span><span class="doc-ep-path">/events/</span><span
+                    class="doc-ep-sum">Listar eventos</span><span class="doc-lock">🔒</span><svg class="ep-chevron"
+                    width="13" height="13" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" d="M4 6l4 4 4-4" />
+                  </svg></div>
+                <div class="doc-ep-body">
+                  <p class="doc-desc">Devuelve una lista paginada de todos los eventos.</p>
+                  <div>
+                    <div class="dsub">Query params</div>
+                    <table class="params-table">
+                      <thead>
+                        <tr>
+                          <th>Parámetro</th>
+                          <th>Tipo</th>
+                          <th>Req.</th>
+                          <th>Descripción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="p-name">page</td>
+                          <td class="p-type">integer</td>
+                          <td class="p-req no">No</td>
+                          <td class="p-desc">Número de página, por defecto 1</td>
+                        </tr>
+                        <tr>
+                          <td class="p-name">size</td>
+                          <td class="p-type">integer</td>
+                          <td class="p-req no">No</td>
+                          <td class="p-desc">Registros por página, por defecto 20, máximo 100</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div class="dsub">Respuestas</div>
+                    <div class="rc-list">
+                      <div class="rc rc-2"><span class="rc-code">200</span><span class="rc-desc">Lista paginada de
+                          eventos</span></div>
+                      <div class="rc rc-4"><span class="rc-code">401</span><span class="rc-desc">No autenticado</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="doc-ep" id="doc-ev-create">
+                <div class="doc-ep-head" onclick="toggleDoc('doc-ev-create')"><span
+                    class="method-badge POST">POST</span><span class="doc-ep-path">/events/</span><span
+                    class="doc-ep-sum">Crear evento</span><span class="doc-lock">🔒 admin</span><svg class="ep-chevron"
+                    width="13" height="13" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" d="M4 6l4 4 4-4" />
+                  </svg></div>
+                <div class="doc-ep-body">
+                  <p class="doc-desc">Crea un nuevo evento CTF en estado <code>draft</code>. Requiere rol admin.</p>
+                  <div>
+                    <div class="dsub">Body (JSON)</div>
+                    <table class="params-table">
+                      <thead>
+                        <tr>
+                          <th>Campo</th>
+                          <th>Tipo</th>
+                          <th>Req.</th>
+                          <th>Descripción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="p-name">name</td>
+                          <td class="p-type">string</td>
+                          <td class="p-req yes">Sí</td>
+                          <td class="p-desc">Nombre del evento</td>
+                        </tr>
+                        <tr>
+                          <td class="p-name">description</td>
+                          <td class="p-type">string</td>
+                          <td class="p-req no">No</td>
+                          <td class="p-desc">Descripción detallada</td>
+                        </tr>
+                        <tr>
+                          <td class="p-name">max_team_size</td>
+                          <td class="p-type">integer</td>
+                          <td class="p-req yes">Sí</td>
+                          <td class="p-desc">Número máximo de integrantes por equipo</td>
+                        </tr>
+                        <tr>
+                          <td class="p-name">starts_at</td>
+                          <td class="p-type">ISO 8601</td>
+                          <td class="p-req yes">Sí</td>
+                          <td class="p-desc">Fecha y hora de inicio en UTC</td>
+                        </tr>
+                        <tr>
+                          <td class="p-name">ends_at</td>
+                          <td class="p-type">ISO 8601</td>
+                          <td class="p-req yes">Sí</td>
+                          <td class="p-desc">Fecha y hora de cierre en UTC</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div class="dsub">Respuestas</div>
+                    <div class="rc-list">
+                      <div class="rc rc-2"><span class="rc-code">201</span><span class="rc-desc">Evento creado —
+                          devuelve el objeto con <code>id</code></span></div>
+                      <div class="rc rc-4"><span class="rc-code">403</span><span class="rc-desc">Requiere rol
+                          admin</span></div>
+                      <div class="rc rc-4"><span class="rc-code">422</span><span class="rc-desc">Campos inválidos</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="docs-section">
+              <div class="docs-section-title">Challenges</div>
+              <div class="doc-ep" id="doc-submit-d">
+                <div class="doc-ep-head" onclick="toggleDoc('doc-submit-d')"><span
+                    class="method-badge POST">POST</span><span
+                    class="doc-ep-path">/events/{eid}/challenges/{cid}/submit</span><span class="doc-ep-sum">Enviar
+                    flag</span><span class="doc-lock">🔒</span><svg class="ep-chevron" width="13" height="13"
+                    fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" d="M4 6l4 4 4-4" />
+                  </svg></div>
+                <div class="doc-ep-body">
+                  <p class="doc-desc">Envía una flag para el reto especificado. Un reto solo puede resolverse una vez
+                    por equipo. Si es correcta, otorga los puntos al equipo.</p>
+                  <div>
+                    <div class="dsub">Path params</div>
+                    <table class="params-table">
+                      <thead>
+                        <tr>
+                          <th>Parámetro</th>
+                          <th>Tipo</th>
+                          <th>Descripción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="p-name">eid</td>
+                          <td class="p-type">uuid</td>
+                          <td class="p-desc">ID del evento</td>
+                        </tr>
+                        <tr>
+                          <td class="p-name">cid</td>
+                          <td class="p-type">uuid</td>
+                          <td class="p-desc">ID del challenge</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div class="dsub">Respuesta 200</div>
+                    <div class="code-block"><button class="cb-copy" onclick="cbCopy(this)">Copiar</button><span
+                        style="color:var(--text-faint)">{</span>
+                      <span class="jk">"correct"</span>: <span class="jb">true</span>,
+                      <span class="jk">"points"</span>: <span class="jn">200</span>,
+                      <span class="jk">"message"</span>: <span class="js">"Flag correcta. +200 puntos"</span>
+                      <span style="color:var(--text-faint)">}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="dsub">Respuestas</div>
+                    <div class="rc-list">
+                      <div class="rc rc-2"><span class="rc-code">200</span><span class="rc-desc">Flag procesada — ver
+                          campo <code>correct</code></span></div>
+                      <div class="rc rc-4"><span class="rc-code">409</span><span class="rc-desc">El equipo ya resolvió
+                          este challenge</span></div>
+                      <div class="rc rc-4"><span class="rc-code">403</span><span class="rc-desc">El evento no está en
+                          estado <code>running</code></span></div>
+                      <div class="rc rc-4"><span class="rc-code">404</span><span class="rc-desc">Evento o challenge no
+                          encontrado</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="docs-section">
+              <div class="docs-section-title">Teams</div>
+              <div class="doc-ep" id="doc-teams-d">
+                <div class="doc-ep-head" onclick="toggleDoc('doc-teams-d')"><span
+                    class="method-badge POST">POST</span><span class="doc-ep-path">/events/{eid}/teams/join</span><span
+                    class="doc-ep-sum">Unirse a equipo</span><span class="doc-lock">🔒</span><svg class="ep-chevron"
+                    width="13" height="13" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" d="M4 6l4 4 4-4" />
+                  </svg></div>
+                <div class="doc-ep-body">
+                  <p class="doc-desc">Permite al usuario autenticado unirse a un equipo usando la clave de ingreso
+                    generada por el líder. El evento debe estar en estado <code>open</code>.</p>
+                  <div>
+                    <div class="dsub">Body (JSON)</div>
+                    <table class="params-table">
+                      <thead>
+                        <tr>
+                          <th>Campo</th>
+                          <th>Tipo</th>
+                          <th>Req.</th>
+                          <th>Descripción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="p-name">join_secret</td>
+                          <td class="p-type">string</td>
+                          <td class="p-req yes">Sí</td>
+                          <td class="p-desc">Clave de ingreso generada por el equipo</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div class="dsub">Respuestas</div>
+                    <div class="rc-list">
+                      <div class="rc rc-2"><span class="rc-code">200</span><span class="rc-desc">Usuario añadido al
+                          equipo exitosamente</span></div>
+                      <div class="rc rc-4"><span class="rc-code">403</span><span class="rc-desc">Evento no está en
+                          estado <code>open</code> o equipo lleno</span></div>
+                      <div class="rc rc-4"><span class="rc-code">404</span><span class="rc-desc">Clave de ingreso
+                          inválida</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="docs-section">
+              <div class="docs-section-title">Formato de errores</div>
+              <div class="code-block"><button class="cb-copy" onclick="cbCopy(this)">Copiar</button><span
+                  style="color:var(--text-faint)">{</span>
+                <span class="jk">"error"</span>: <span class="js">"Descripción legible del error"</span>,
+                <span class="jk">"code"</span>: <span class="js">"SNAKE_CASE_CODE"</span>,
+                <span class="jk">"details"</span>: <span style="color:var(--text-faint)">{ /* información adicional
+                  opcional */ }</span>
+                <span style="color:var(--text-faint)">}</span>
+              </div>
+            </div>
+
+          </div><!-- /docs-body -->
+        </div><!-- /docs-panel -->
+
+      </div><!-- /workspace -->
+    </main>
+  </div><!-- /page-app -->
+
+  <div id="toast">
+    <div class="toast-dot"></div><span id="toast-msg"></span>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════════════════ STATE
+    const state = {
+      accessToken: localStorage.getItem('gl_access') || '',
+      refreshToken: localStorage.getItem('gl_refresh') || '',
+      username: localStorage.getItem('gl_user') || '',
+      role: localStorage.getItem('gl_role') || '',
+      history: [],
+    };
+
+    function base() { return document.getElementById('base-url').value.replace(/\/$/, ''); }
+
+    function setTokens(a, r, user = '', role = '') {
+      state.accessToken = a;
+      state.refreshToken = r;
+      state.username = user || state.username;
+      state.role = role || state.role;
+      localStorage.setItem('gl_access', a);
+      localStorage.setItem('gl_refresh', r);
+      if (user) localStorage.setItem('gl_user', user);
+      if (role) localStorage.setItem('gl_role', role);
+      updateTokenUI();
+    }
+
+    function clearTokens() {
+      state.accessToken = ''; state.refreshToken = ''; state.username = ''; state.role = '';
+      ['gl_access', 'gl_refresh', 'gl_user', 'gl_role'].forEach(k => localStorage.removeItem(k));
+      updateTokenUI();
+    }
+
+    function updateTokenUI() {
+      const prev = document.getElementById('token-preview');
+      const dot = document.getElementById('status-dot');
+      const cpb = document.getElementById('copy-token-btn');
+      const lgb = document.getElementById('logout-btn');
+      const uname = document.getElementById('auth-username');
+      const urole = document.getElementById('auth-role');
+      if (state.accessToken) {
+        prev.textContent = state.accessToken.slice(0, 42) + '...';
+        prev.classList.add('has-token');
+        dot.classList.add('connected');
+        cpb.disabled = false; lgb.disabled = false;
+        uname.textContent = state.username || 'Autenticado';
+        console.log(state)
+        urole.textContent = state.role ? `rol: ${state.role}` : '';
+      } else {
+        prev.textContent = '—'; prev.classList.remove('has-token');
+        dot.classList.remove('connected');
+        cpb.disabled = true; lgb.disabled = true;
+        uname.textContent = 'Sin sesión'; urole.textContent = '';
+      }
+    }
+
+    function copyToken() {
+      navigator.clipboard.writeText(state.accessToken).then(() => toast('Token copiado', 'ok'));
+    }
+
+    // ══════════════════════════════════════════════════════ JWT UTILS
+    function parseJwt(token) {
+      try {
+        return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      } catch { return {}; }
+    }
+
+    // ══════════════════════════════════════════════════════ LOGIN
+    function toggleServerField() {
+      document.getElementById('srv-toggle').classList.toggle('open');
+      document.getElementById('srv-field').classList.toggle('open');
+    }
+
+    function continueNoAuth() { goApp(); }
+
+    async function doLogin() {
+      const ident = document.getElementById('li-ident').value.trim();
+      const pass = document.getElementById('li-pass').value;
+      const srv = document.getElementById('li-server').value.trim();
+      const btn = document.getElementById('login-btn');
+      const errEl = document.getElementById('login-error');
+
+      if (!ident || !pass) { showLoginError('Complete todos los campos.'); return; }
+      if (srv) document.getElementById('base-url').value = srv;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="btn-spinner"></span>Verificando...';
+      errEl.classList.remove('show');
+
+      try {
+        const res = await fetch(base() + '/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier: ident, password: pass }),
+        });
+        let data = {};
+        try { data = await res.json(); } catch { }
+
+        if (res.ok && data.access_token) {
+          const payload = parseJwt(data.access_token);
+          const uname = data.user?.username || payload.username || ident;
+          const role = data.user?.role || payload.role || '';
+          setTokens(data.access_token, data.refresh_token || '', uname, role);
+          toast('Sesión iniciada correctamente', 'ok');
+          goApp();
+        } else {
+          showLoginError(
+            data.error ||
+            (res.status === 401 ? 'Credenciales incorrectas.' :
+              res.status === 403 ? 'Cuenta suspendida o baneada.' :
+                res.status === 0 ? 'No se pudo conectar al servidor.' :
+                  `Error del servidor (${res.status}).`)
+          );
+        }
+      } catch (e) {
+        showLoginError('No se pudo conectar. Verifique la URL del servidor y que esté activo.');
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = 'Acceder';
+    }
+
+    function showLoginError(msg) {
+      const el = document.getElementById('login-error');
+      el.textContent = msg; el.classList.add('show');
+    }
+
+    function goApp() {
+      document.getElementById('page-login').classList.remove('active');
+      document.getElementById('page-app').classList.add('active');
+      const srv = document.getElementById('li-server').value.trim();
+      if (srv) document.getElementById('base-url').value = srv;
+      updateTokenUI();
+      showSection('health');
+    }
+
+    function goLogin() {
+      document.getElementById('page-app').classList.remove('active');
+      document.getElementById('page-login').classList.add('active');
+      document.getElementById('li-pass').value = '';
+      document.getElementById('login-error').classList.remove('show');
+    }
+
+    async function logoutToLogin() {
+      try { await call('POST', '/auth/logout', { refresh_token: state.refreshToken }); } catch { }
+      clearTokens();
+      toast('Sesión cerrada', 'ok');
+      goLogin();
+    }
+
+    // ══════════════════════════════════════════════════════ HTTP CLIENT
+    async function call(method, path, body, retry = true) {
+      const t0 = Date.now();
+      setLoading(true);
+      const headers = { 'Content-Type': 'application/json' };
+      if (state.accessToken) headers['Authorization'] = 'Bearer ' + state.accessToken;
+
+      let res;
+      try {
+        res = await fetch(base() + path, {
+          method, headers, body: body ? JSON.stringify(body) : undefined,
+        });
+      } catch (e) {
+        setLoading(false);
+        renderResponse(null, { error: 'No se pudo conectar: ' + e.message }, Date.now() - t0, method + ' ' + path, {}, '');
+        return null;
+      }
+
+      if (res.status === 401 && retry && state.refreshToken) {
+        const ok = await doRefresh();
+        if (ok) { setLoading(false); return call(method, path, body, false); }
+      }
+
+      let data, raw = '';
+      try {
+        raw = await res.text();
+        data = res.status === 204 ? { status: 'No Content' } : JSON.parse(raw);
+      } catch { data = { raw }; }
+
+      const hdrs = {};
+      res.headers.forEach((v, k) => { hdrs[k] = v; });
+      setLoading(false);
+      renderResponse(res.status, data, Date.now() - t0, method + ' ' + path, hdrs, raw);
+      return { status: res.status, data };
+    }
+
+    async function doRefresh() {
+      try {
+        const r = await fetch(base() + '/auth/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: state.refreshToken }),
+        });
+        if (!r.ok) { clearTokens(); return false; }
+        const d = await r.json();
+        setTokens(d.access_token, d.refresh_token || '');
+        return true;
+      } catch { return false; }
+    }
+
+    function setLoading(on) { document.getElementById('loading-line').classList.toggle('active', on); }
+
+    // ══════════════════════════════════════════════════════ RENDER
+    function renderResponse(status, data, ms, label, hdrs = {}, raw = '') {
+      const sc = document.getElementById('res-status');
+      const tc = document.getElementById('res-time');
+      const rb = document.getElementById('res-body');
+      const rr = document.getElementById('res-raw');
+      const ph = document.getElementById('placeholder');
+
+      sc.style.display = status ? 'inline-block' : 'none';
+      if (status) {
+        sc.textContent = status;
+        sc.className = 'status-chip ' + (status < 300 ? 's2xx' : status < 500 ? 's4xx' : 's5xx');
+      }
+      tc.textContent = ms ? ms + ' ms' : '';
+      ph.style.display = 'none'; rb.style.display = 'block';
+      rb.innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+      rr.textContent = raw || JSON.stringify(data, null, 2);
+      renderHeaders(hdrs);
+      addHistory(status, label, data, hdrs, raw);
+    }
+
+    function renderHeaders(hdrs) {
+      const el = document.getElementById('res-headers-view');
+      const entries = Object.entries(hdrs);
+      if (!entries.length) { el.innerHTML = '<span style="color:var(--text-faint);font-size:12px">Sin encabezados disponibles</span>'; return; }
+      el.innerHTML = entries.map(([k, v]) =>
+        `<div class="headers-row"><span class="hdr-key">${k}</span><span class="hdr-val">${v}</span></div>`
+      ).join('');
+    }
+
+    function syntaxHighlight(json) {
+      return json
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+          if (/^"/.test(m)) return /:$/.test(m) ? `<span class="jk">${m}</span>` : `<span class="js">${m}</span>`;
+          if (/true|false|null/.test(m)) return `<span class="jb">${m}</span>`;
+          return `<span class="jn">${m}</span>`;
+        });
+    }
+
+    function copyResponse() {
+      navigator.clipboard.writeText(document.getElementById('res-body').innerText)
+        .then(() => toast('Copiado al portapapeles', 'ok'));
+    }
+
+    function switchTab(name, el) {
+      document.querySelectorAll('.res-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.res-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById('pane-' + name).classList.add('active');
+      if (el) el.classList.add('active');
+    }
+
+    // ══════════════════════════════════════════════════════ HISTORY
+    function addHistory(status, label, data, hdrs, raw) {
+      state.history.unshift({ status, label: (label || '').slice(-40), data, hdrs, raw });
+      if (state.history.length > 14) state.history.pop();
+      const container = document.getElementById('history-items');
+      container.innerHTML = '';
+      state.history.forEach(h => {
+        const cls = !h.status ? 'hist-err' : h.status < 300 ? 'hist-ok' : h.status < 500 ? 'hist-warn' : 'hist-err';
+        const el = document.createElement('div');
+        el.className = 'hist-item ' + cls;
+        el.innerHTML = `<span class="hist-status">${h.status || 'ERR'}</span><span>${h.label}</span>`;
+        el.onclick = () => {
+          document.getElementById('res-body').innerHTML = syntaxHighlight(JSON.stringify(h.data, null, 2));
+          document.getElementById('res-body').style.display = 'block';
+          document.getElementById('placeholder').style.display = 'none';
+          document.getElementById('res-raw').textContent = h.raw || '';
+          renderHeaders(h.hdrs || {});
+          const sc = document.getElementById('res-status');
+          sc.style.display = 'inline-block'; sc.textContent = h.status || 'ERR';
+          sc.className = 'status-chip ' + (!h.status ? 's5xx' : h.status < 300 ? 's2xx' : h.status < 500 ? 's4xx' : 's5xx');
+        };
+        container.appendChild(el);
+      });
+    }
+
+    // ══════════════════════════════════════════════════════ TOAST
+    function toast(msg, type = 'ok') {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      t.className = 'show ' + type;
+      clearTimeout(t._tid);
+      t._tid = setTimeout(() => t.className = '', 2800);
+    }
+
+    // ══════════════════════════════════════════════════════ FORM HELPERS
+    let _uid = 0;
+
+    function field(id, label, placeholder = '', type = 'text', hint = '') {
+      return `<div class="fg">
+    <label>${label}</label>
+    <input class="inp" id="${id}" type="${type}" placeholder="${placeholder}">
+    ${hint ? `<span style="font-size:10px;color:var(--text-faint)">${hint}</span>` : ''}
+  </div>`;
+    }
+
+    function textareaField(id, label, placeholder = '{}') {
+      return `<div class="fg"><label>${label}</label><textarea id="${id}" placeholder="${placeholder}"></textarea></div>`;
+    }
+
+    function selectField(id, label, options = []) {
+      const opts = options.map(o => typeof o === 'string'
+        ? `<option value="${o}">${o}</option>`
+        : `<option value="${o.val}">${o.label}</option>`
+      ).join('');
+      return `<div class="fg"><label>${label}</label><select id="${id}">${opts}</select></div>`;
+    }
+
+    function rowGroup(...fields) { return `<div class="row-group">${fields.join('')}</div>`; }
+
+    function dateField(id, label) {
+      const calId = id + '_cal';
+      return `<div class="fg">
+    <label>${label}</label>
+    <div class="date-wrapper" id="${id}_wrap">
+      <input class="inp" id="${id}" type="text" placeholder="YYYY-MM-DDTHH:MM:00Z" readonly onclick="toggleCal('${id}')" autocomplete="off">
+      <span class="cal-icon">
+        <svg width="13" height="13" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="3.5" width="12" height="10" rx="1.5"/>
+          <path stroke-linecap="round" d="M5 2v3M11 2v3M2 7h12"/>
+        </svg>
+      </span>
+      <div class="calendar-popup" id="${calId}"></div>
+    </div>
+  </div>`;
+    }
+
+    function rangeField(id, label, min = 1, max = 50, defVal = 20) {
+      return `<div class="fg">
+    <label>${label}</label>
+    <div class="range-wrap">
+      <input type="range" id="${id}" min="${min}" max="${max}" value="${defVal}"
+        oninput="document.getElementById('${id}_val').textContent=this.value">
+      <span class="range-val" id="${id}_val">${defVal}</span>
+    </div>
+  </div>`;
+    }
+
+    function noteField(text) { return `<div class="ep-note">${text}</div>`; }
+
+    function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+    function ival(id, d = 0) { return parseInt(val(id)) || d; }
+
+    function card(method, path, title, bodyHtml, onSend) {
+      const id = 'ep' + (_uid++);
+      return `<div class="ep-card" id="${id}_card">
+    <div class="ep-header" onclick="toggleCard('${id}')">
+      <span class="method-badge ${method}">${method}</span>
+      <span class="ep-path">${path}</span>
+      <svg class="ep-chevron" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" d="M4 6l4 4 4-4"/>
+      </svg>
+    </div>
+    <div class="ep-body" id="${id}">
+      ${bodyHtml}
+      <button class="send-btn" onclick="(${onSend.toString()})()">
+        <svg width="12" height="12" fill="none" viewBox="0 0 16 16" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" d="M2 8h12M9 4l5 4-5 4"/>
+        </svg>
+        Enviar solicitud
+      </button>
+    </div>
+  </div>`;
+    }
+
+    function toggleCard(id) {
+      document.getElementById(id).classList.toggle('open');
+      document.getElementById(id + '_card').classList.toggle('expanded');
+    }
+
+    // ══════════════════════════════════════════════════════ CALENDAR
+    const calState = {};
+
+    function toggleCal(id) {
+      const popup = document.getElementById(id + '_cal');
+      const isOpen = popup.classList.contains('open');
+      document.querySelectorAll('.calendar-popup.open').forEach(p => p.classList.remove('open'));
+      if (!isOpen) {
+        if (!calState[id]) {
+          const now = new Date();
+          calState[id] = { year: now.getFullYear(), month: now.getMonth(), selectedDay: null, time: '00:00' };
+        }
+        renderCal(id); popup.classList.add('open');
+        setTimeout(() => {
+          const h = e => {
+            if (!document.getElementById(id + '_wrap').contains(e.target)) {
+              popup.classList.remove('open'); document.removeEventListener('click', h);
+            }
+          };
+          document.addEventListener('click', h);
+        }, 10);
+      }
+    }
+
+    function renderCal(id) {
+      const cs = calState[id];
+      const popup = document.getElementById(id + '_cal');
+      const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      const days = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'];
+      const firstDay = new Date(cs.year, cs.month, 1).getDay();
+      const daysInMonth = new Date(cs.year, cs.month + 1, 0).getDate();
+      const today = new Date();
+
+      let cells = days.map(d => `<div class="cal-dow">${d}</div>`).join('');
+      for (let i = 0; i < firstDay; i++) cells += `<div class="cal-day empty"></div>`;
+      for (let d = 1; d <= daysInMonth; d++) {
+        let cls = 'cal-day';
+        if (d === today.getDate() && cs.month === today.getMonth() && cs.year === today.getFullYear()) cls += ' today';
+        if (d === cs.selectedDay) cls += ' selected';
+        cells += `<div class="${cls}" onclick="selectDay('${id}',${d})">${d}</div>`;
+      }
+
+      popup.innerHTML = `
+    <div class="cal-header">
+      <button class="cal-nav" onclick="navCal('${id}',-1)">&#8249;</button>
+      <span>${months[cs.month]} ${cs.year}</span>
+      <button class="cal-nav" onclick="navCal('${id}',1)">&#8250;</button>
+    </div>
+    <div class="cal-grid">${cells}</div>
+    <div class="cal-time">
+      <label>Hora</label>
+      <input class="inp" id="${id}_time" type="time" value="${cs.time}" oninput="calState['${id}'].time=this.value">
+    </div>
+    <div class="cal-footer">
+      <button class="cal-btn cancel" onclick="document.getElementById('${id}_cal').classList.remove('open')">Cancelar</button>
+      <button class="cal-btn apply" onclick="applyCal('${id}')">Aplicar</button>
+    </div>`;
+    }
+
+    function navCal(id, dir) {
+      calState[id].month += dir;
+      if (calState[id].month > 11) { calState[id].month = 0; calState[id].year++; }
+      if (calState[id].month < 0) { calState[id].month = 11; calState[id].year--; }
+      renderCal(id);
+    }
+    function selectDay(id, d) { calState[id].selectedDay = d; renderCal(id); }
+    function applyCal(id) {
+      const cs = calState[id];
+      if (!cs.selectedDay) { toast('Seleccione un día', 'warn'); return; }
+      const m = String(cs.month + 1).padStart(2, '0');
+      const d = String(cs.selectedDay).padStart(2, '0');
+      const [h, min] = (cs.time || '00:00').split(':');
+      document.getElementById(id).value = `${cs.year}-${m}-${d}T${h}:${min}:00Z`;
+      document.getElementById(id + '_cal').classList.remove('open');
+    }
+
+    // ══════════════════════════════════════════════════════ SECTIONS
+    const sections = {
+
+      health: {
+        title: 'Health Checks', desc: 'Estado del servidor y la base de datos',
+        render() {
+          return [
+            card('GET', '/healthz/live', 'Liveness probe',
+              noteField('Verifica que el proceso está en ejecución. No requiere autenticación.'),
+              async function () {
+                const t0 = Date.now(); setLoading(true);
+                try {
+                  const r = await fetch(base() + '/healthz/live');
+                  const d = await r.json(); setLoading(false);
+                  renderResponse(r.status, d, Date.now() - t0, 'GET /healthz/live', {}, JSON.stringify(d));
+                } catch (e) { setLoading(false); renderResponse(null, { error: e.message }, 0, 'GET /healthz/live', {}, ''); }
+              }),
+
+            card('GET', '/healthz/ready', 'Readiness probe',
+              noteField('Verifica la conexión a la base de datos y dependencias.'),
+              async function () {
+                const t0 = Date.now(); setLoading(true);
+                try {
+                  const r = await fetch(base() + '/healthz/ready');
+                  const d = await r.json(); setLoading(false);
+                  renderResponse(r.status, d, Date.now() - t0, 'GET /healthz/ready', {}, JSON.stringify(d));
+                } catch (e) { setLoading(false); renderResponse(null, { error: e.message }, 0, 'GET /healthz/ready', {}, ''); }
+              }),
+          ].join('');
+        }
+      },
+
+      auth: {
+        title: 'Autenticación', desc: 'Registro, inicio de sesión, renovación y cierre de sesión',
+        render() {
+          return [
+            card('POST', '/auth/register', 'Registrar usuario',
+              rowGroup(field('r-user', 'Nombre de usuario', 'hackerman'), field('r-email', 'Correo electrónico', 'correo@ejemplo.com', 'email')) +
+              field('r-pass', 'Contraseña', 'Mínimo 6 caracteres', 'password'),
+              async function () { await call('POST', '/auth/register', { username: val('r-user'), email: val('r-email'), password: val('r-pass') }); }),
+
+            card('POST', '/auth/login', 'Iniciar sesión',
+              field('l-id', 'Identificador', 'Correo o nombre de usuario') +
+              field('l-pass', 'Contraseña', '', 'password'),
+              async function () {
+                const r = await call('POST', '/auth/login', { identifier: val('l-id'), password: val('l-pass') });
+                if (r?.data?.access_token) {
+                  setTokens(r.data.access_token, r.data.refresh_token || '', r.data.user?.username || val('l-id'), r.data.user?.role || 'user');
+                  toast('Sesión iniciada correctamente', 'ok');
+                }
+              }),
+
+            card('POST', '/auth/refresh', 'Renovar token',
+              field('rf-tok', 'Refresh token', '(Se utiliza el token guardado automáticamente)') +
+              noteField('Si el campo está vacío, se usa el refresh token almacenado en sesión.'),
+              async function () {
+                const rt = val('rf-tok') || state.refreshToken;
+                const r = await call('POST', '/auth/refresh', { refresh_token: rt });
+                if (r?.data?.access_token) { setTokens(r.data.access_token, r.data.refresh_token || ''); toast('Token renovado', 'ok'); }
+              }),
+
+            card('POST', '/auth/logout', 'Cerrar sesión',
+              noteField('Revoca el refresh token activo e invalida la sesión.'),
+              async function () {
+                await call('POST', '/auth/logout', { refresh_token: state.refreshToken });
+                clearTokens(); toast('Sesión cerrada', 'ok');
+              }),
+          ].join('');
+        }
+      },
+
+      users: {
+        title: 'Users', desc: 'Perfil, búsqueda y gestión de usuarios',
+        render() {
+          return [
+            card('GET', '/users/', 'Listar usuarios',
+              rowGroup(field('lu-page', 'Página', '1'), rangeField('lu-size', 'Registros por página', 5, 100, 20)),
+              async function () { await call('GET', `/users/?page=${val('lu-page')}&size=${val('lu-size')}`); }),
+
+            card('GET', '/users/{id}', 'Obtener usuario por ID',
+              field('gu-id', 'User ID (UUID)', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'),
+              async function () { await call('GET', `/users/${val('gu-id')}`); }),
+
+            card('GET', '/users/by-username/{username}', 'Obtener por nombre de usuario',
+              field('guu-name', 'Nombre de usuario', 'hackerman'),
+              async function () { await call('GET', `/users/by-username/${val('guu-name')}`); }),
+
+            card('GET', '/users/search', 'Buscar usuarios',
+              field('su-q', 'Término de búsqueda', 'hack') + noteField('Búsqueda parcial por nombre de usuario.'),
+              async function () { await call('GET', `/users/search?q=${encodeURIComponent(val('su-q'))}`); }),
+
+            card('POST', '/users/{id}/update', 'Actualizar perfil',
+              field('uu-id', 'User ID (UUID)', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx') +
+              rowGroup(field('uu-user', 'Nuevo nombre de usuario (opcional)', ''), field('uu-email', 'Nuevo correo (opcional)', '', 'email')),
+              async function () {
+                const body = {};
+                if (val('uu-user')) body.username = val('uu-user');
+                if (val('uu-email')) body.email = val('uu-email');
+                await call('POST', `/users/${val('uu-id')}/update`, body);
+              }),
+
+            card('POST', '/users/{id}/password', 'Cambiar contraseña',
+              field('cp-id', 'User ID (UUID)', '') +
+              field('cp-cur', 'Contraseña actual', '', 'password') +
+              field('cp-new', 'Nueva contraseña', '', 'password'),
+              async function () { await call('POST', `/users/${val('cp-id')}/password`, { current_password: val('cp-cur'), new_password: val('cp-new') }); }),
+          ].join('');
+        }
+      },
+
+      events: {
+        title: 'Events', desc: 'Gestión de eventos CTF y su ciclo de vida',
+        render() {
+          return [
+            card('GET', '/events/', 'Listar eventos',
+              rowGroup(field('le-page', 'Página', '1'), rangeField('le-size', 'Tamaño de página', 5, 100, 20)),
+              async function () { await call('GET', `/events/?page=${val('le-page')}&size=${val('le-size')}`); }),
+
+            card('GET', '/events/{id}', 'Obtener evento',
+              field('ge-id', 'Event ID (UUID)', ''),
+              async function () { await call('GET', `/events/${val('ge-id')}`); }),
+
+            card('POST', '/events/', 'Crear evento',
+              field('ce-name', 'Nombre del evento', 'GoLabs CTF 2025') +
+              field('ce-desc', 'Descripción', '') +
+              rangeField('ce-size', 'Tamaño máximo de equipo', 1, 20, 4) +
+              rowGroup(dateField('ce-start', 'Fecha de inicio'), dateField('ce-end', 'Fecha de cierre')),
+              async function () {
+                await call('POST', '/events/', { name: val('ce-name'), description: val('ce-desc'), max_team_size: ival('ce-size', 4), starts_at: val('ce-start'), ends_at: val('ce-end') });
+              }),
+
+            card('POST', '/events/{id}/open', 'Abrir evento',
+              field('oe-id', 'Event ID (UUID)', '') + noteField('Transición de estado: draft → open'),
+              async function () { await call('POST', `/events/${val('oe-id')}/open`); }),
+
+            card('POST', '/events/{id}/start', 'Iniciar evento',
+              field('se-id', 'Event ID (UUID)', '') + noteField('Transición de estado: open → running'),
+              async function () { await call('POST', `/events/${val('se-id')}/start`); }),
+
+            card('POST', '/events/{id}/finish', 'Finalizar evento',
+              field('fe-id', 'Event ID (UUID)', '') + noteField('Transición de estado: running → finished'),
+              async function () { await call('POST', `/events/${val('fe-id')}/finish`); }),
+          ].join('');
+        }
+      },
+
+      teams: {
+        title: 'Teams', desc: 'Equipos dentro de un evento',
+        render() {
+          return [
+            card('GET', '/events/{eid}/teams', 'Listar equipos',
+              field('lt-eid', 'Event ID (UUID)', ''),
+              async function () { await call('GET', `/events/${val('lt-eid')}/teams`); }),
+
+            card('POST', '/events/{eid}/teams', 'Crear equipo',
+              field('ct-eid', 'Event ID (UUID)', '') + field('ct-name', 'Nombre del equipo', 'Byte Busters'),
+              async function () { await call('POST', `/events/${val('ct-eid')}/teams`, { name: val('ct-name') }); }),
+
+            card('POST', '/events/{eid}/teams/join', 'Unirse a un equipo',
+              field('jt-eid', 'Event ID (UUID)', '') + field('jt-sec', 'Clave de ingreso', ''),
+              async function () { await call('POST', `/events/${val('jt-eid')}/teams/join`, { join_secret: val('jt-sec') }); }),
+
+            card('GET', '/events/{eid}/teams/{tid}/members', 'Ver integrantes',
+              rowGroup(field('mt-eid', 'Event ID', ''), field('mt-tid', 'Team ID', '')),
+              async function () { await call('GET', `/events/${val('mt-eid')}/teams/${val('mt-tid')}/members`); }),
+
+            card('POST', '/events/{eid}/teams/{tid}/leave', 'Abandonar equipo',
+              rowGroup(field('lvt-eid', 'Event ID', ''), field('lvt-tid', 'Team ID', '')),
+              async function () { await call('POST', `/events/${val('lvt-eid')}/teams/${val('lvt-tid')}/leave`); }),
+
+            card('POST', '/events/{eid}/teams/{tid}/rotate-secret', 'Rotar clave de ingreso',
+              rowGroup(field('rt-eid', 'Event ID', ''), field('rt-tid', 'Team ID', '')) +
+              noteField('Genera una nueva clave aleatoria e invalida la anterior.'),
+              async function () { await call('POST', `/events/${val('rt-eid')}/teams/${val('rt-tid')}/rotate-secret`); }),
+
+            card('GET', '/events/{eid}/leaderboard', 'Tabla de posiciones',
+              field('lb-eid', 'Event ID (UUID)', ''),
+              async function () { await call('GET', `/events/${val('lb-eid')}/leaderboard`); }),
+          ].join('');
+        }
+      },
+
+      challenges: {
+        title: 'Challenges', desc: 'Retos CTF: consultar, enviar flags y administrar',
+        render() {
+          return [
+            card('GET', '/events/{eid}/challenges', 'Listar challenges',
+              field('lc-eid', 'Event ID (UUID)', '') +
+              rowGroup(
+                selectField('lc-cat', 'Categoría', [{ val: '', label: 'Todas' }, 'web', 'pwn', 'rev', 'crypto', 'forensics', 'misc']),
+                selectField('lc-diff', 'Dificultad', [{ val: '', label: 'Todas' }, 'easy', 'medium', 'hard'])
+              ),
+              async function () {
+                const p = new URLSearchParams();
+                if (val('lc-cat')) p.set('category', val('lc-cat'));
+                if (val('lc-diff')) p.set('difficulty', val('lc-diff'));
+                await call('GET', `/events/${val('lc-eid')}/challenges${p.toString() ? '?' + p : ''}`);
+              }),
+
+            card('GET', '/events/{eid}/challenges/{cid}', 'Ver challenge',
+              rowGroup(field('gc-eid', 'Event ID', ''), field('gc-cid', 'Challenge ID', '')),
+              async function () { await call('GET', `/events/${val('gc-eid')}/challenges/${val('gc-cid')}`); }),
+
+            card('POST', '/events/{eid}/challenges/{cid}/submit', 'Enviar Flag',
+              rowGroup(field('sf-eid', 'Event ID', ''), field('sf-cid', 'Challenge ID', '')) +
+              field('sf-flag', 'Flag', 'CTF{...}'),
+              async function () {
+                const r = await call('POST', `/events/${val('sf-eid')}/challenges/${val('sf-cid')}/submit`, { flag: val('sf-flag') });
+                if (r?.data) toast(r.data.correct ? `Correcto — +${r.data.points} puntos` : 'Flag incorrecta', r.data.correct ? 'ok' : 'err');
+              }),
+
+            card('POST', '/events/{eid}/challenges', 'Crear challenge',
+              field('cc-eid', 'Event ID (UUID)', '') +
+              field('cc-title', 'Título', 'SQL Injection 101') +
+              field('cc-desc', 'Descripción', '') +
+              rowGroup(
+                selectField('cc-cat', 'Categoría', ['web', 'pwn', 'rev', 'crypto', 'forensics', 'misc']),
+                selectField('cc-diff', 'Dificultad', ['easy', 'medium', 'hard'])
+              ) +
+              rangeField('cc-pts', 'Puntos', 10, 2000, 200),
+              async function () {
+                await call('POST', `/events/${val('cc-eid')}/challenges`, { title: val('cc-title'), description: val('cc-desc'), category: val('cc-cat'), points: ival('cc-pts', 100), difficulty: val('cc-diff') });
+              }),
+
+            card('POST', '/events/{eid}/challenges/{cid}/flag', 'Configurar flag',
+              rowGroup(field('fl-eid', 'Event ID', ''), field('fl-cid', 'Challenge ID', '')) +
+              field('fl-flag', 'Flag (texto plano)', 'CTF{secret_flag}') +
+              noteField('La flag se almacena como hash en la base de datos.'),
+              async function () { await call('POST', `/events/${val('fl-eid')}/challenges/${val('fl-cid')}/flag`, { flag: val('fl-flag') }); }),
+
+            card('POST', '/events/{eid}/challenges/{cid}/publish', 'Publicar challenge',
+              rowGroup(field('pb-eid', 'Event ID', ''), field('pb-cid', 'Challenge ID', '')),
+              async function () { await call('POST', `/events/${val('pb-eid')}/challenges/${val('pb-cid')}/publish`); }),
+
+            card('POST', '/events/{eid}/challenges/{cid}/unpublish', 'Ocultar challenge',
+              rowGroup(field('up-eid', 'Event ID', ''), field('up-cid', 'Challenge ID', '')),
+              async function () { await call('POST', `/events/${val('up-eid')}/challenges/${val('up-cid')}/unpublish`); }),
+          ].join('');
+        }
+      },
+
+      admin: {
+        title: 'Administración', desc: 'Gestión avanzada de usuarios — requiere rol admin',
+        render() {
+          return [
+            card('POST', '/admin/users/{id}/role', 'Cambiar rol de usuario',
+              field('ar-id', 'User ID (UUID)', '') +
+              selectField('ar-role', 'Nuevo rol', [{ val: 'user', label: 'user' }, { val: 'admin', label: 'admin' }]),
+              async function () { await call('POST', `/admin/users/${val('ar-id')}/role`, { role: val('ar-role') }); }),
+
+            card('POST', '/admin/users/{id}/points', 'Modificar puntos',
+              field('ap-id', 'User ID (UUID)', '') + rangeField('ap-pts', 'Puntos', 0, 10000, 0),
+              async function () { await call('POST', `/admin/users/${val('ap-id')}/points`, { points: ival('ap-pts', 0) }); }),
+
+            card('POST', '/admin/users/{id}/ban', 'Banear usuario',
+              field('bn-id', 'User ID (UUID)', '') + noteField('El usuario no podrá autenticarse hasta ser desbaneado.'),
+              async function () { await call('POST', `/admin/users/${val('bn-id')}/ban`); }),
+
+            card('POST', '/admin/users/{id}/unban', 'Desbanear usuario',
+              field('ub-id', 'User ID (UUID)', ''),
+              async function () { await call('POST', `/admin/users/${val('ub-id')}/unban`); }),
+
+            card('POST', '/users/', 'Crear usuario directo',
+              rowGroup(field('cu-user', 'Nombre de usuario', ''), field('cu-email', 'Correo electrónico', '', 'email')) +
+              field('cu-pass', 'Contraseña', '', 'password') +
+              noteField('Crea un usuario sin pasar por el flujo de registro público.'),
+              async function () { await call('POST', `/users/`, { username: val('cu-user'), email: val('cu-email'), password: val('cu-pass') }); }),
+          ].join('');
+        }
+      },
+    };
+
+    // ══════════════════════════════════════════════════════ NAVIGATION
+    function showSection(name) {
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      const btn = document.getElementById('nav-' + name);
+      if (btn) btn.classList.add('active');
+
+      const fpw = document.getElementById('form-panel-wrap');
+      const rp = document.getElementById('response-panel');
+      const dp = document.getElementById('docs-panel');
+
+      if (name === 'docs') {
+        fpw.style.display = 'none'; rp.style.display = 'none'; dp.style.display = 'flex';
+        document.getElementById('section-title').textContent = 'Documentación';
+        document.getElementById('section-desc').textContent = 'Referencia completa de la API REST';
+        return;
+      }
+
+      fpw.style.display = ''; rp.style.display = ''; dp.style.display = 'none';
+
+      const sec = sections[name];
+      if (!sec) return;
+      document.getElementById('section-title').textContent = sec.title;
+      document.getElementById('section-desc').textContent = sec.desc;
+      document.getElementById('form-panel').innerHTML = sec.render();
+    }
+
+    function toggleDoc(id) { document.getElementById(id).classList.toggle('open'); }
+
+    function cbCopy(btn) {
+      const text = btn.closest('.code-block').innerText.replace('Copiar', '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copiado';
+        setTimeout(() => btn.textContent = 'Copiar', 1500);
+      });
+    }
+
+    // ══════════════════════════════════════════════════════ INIT
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && document.getElementById('page-login').classList.contains('active')) doLogin();
+      if (e.key === 'Escape') document.querySelectorAll('.calendar-popup.open').forEach(p => p.classList.remove('open'));
+    });
+
+    updateTokenUI();
+
+    if (state.accessToken) {
+      goApp();
+    } else {
+      document.getElementById('page-login').classList.add('active');
+    }
+  </script>
+</body>
+
+</html>
