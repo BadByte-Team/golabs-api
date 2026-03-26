@@ -69,7 +69,7 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 
 			r.Post("/", handler.Create)
 			r.Put("/{event_id}", handler.Update)
-			r.Delete("/{event_id}", handler.Delete)
+			r.Post("/{event_id}/delete", handler.Delete)
 			r.Post("/{event_id}/open", handler.Open)
 			r.Post("/{event_id}/start", handler.Start)
 			r.Post("/{event_id}/finish", handler.Finish)

@@ -106,7 +106,7 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 	apperrors.RespondJSON(w, http.StatusOK, mapEvent(event))
 }
 
-// Delete godoc — DELETE /api/v1/events/{event_id}
+// Delete godoc — POST /api/v1/events/{event_id}/delete
 // Elimina un evento existente. Solo admins. Solo eventos en estado draft.
 // Exito: 204 No Content
 func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
