@@ -17,6 +17,8 @@ import (
 // Cada metodo corresponde a un endpoint de la API REST de eventos.
 type EventHandler struct {
 	createUC *eventsapp.CreateEventUseCase
+	updateUC *eventsapp.UpdateEventUseCase
+	deleteUC *eventsapp.DeleteEventUseCase
 	getUC    *eventsapp.GetEventByIDUseCase
 	listUC   *eventsapp.ListEventsUseCase
 	openUC   *eventsapp.OpenEventUseCase
@@ -27,6 +29,8 @@ type EventHandler struct {
 // NewEventHandler inyecta las dependencias del EventHandler.
 func NewEventHandler(
 	create *eventsapp.CreateEventUseCase,
+	update *eventsapp.UpdateEventUseCase,
+	del *eventsapp.DeleteEventUseCase,
 	get *eventsapp.GetEventByIDUseCase,
 	list *eventsapp.ListEventsUseCase,
 	open *eventsapp.OpenEventUseCase,
@@ -35,6 +39,8 @@ func NewEventHandler(
 ) *EventHandler {
 	return &EventHandler{
 		createUC: create,
+		updateUC: update,
+		deleteUC: del,
 		getUC:    get,
 		listUC:   list,
 		openUC:   open,
@@ -70,6 +76,46 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	apperrors.RespondJSON(w, http.StatusCreated, mapEvent(event))
+}
+
+// Update godoc — PUT /api/v1/events/{event_id}
+// Actualiza los datos de un evento existente. Solo admins. Solo eventos en estado draft.
+// Body: UpdateEventRequest | Exito: 200 EventResponse
+func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "event_id")
+
+	var req UpdateEventRequest
+	if err := validate.DecodeAndValidate(r, &req); err != nil {
+		apperrors.RespondJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
+		return
+	}
+
+	event, err := h.updateUC.Execute(
+		id,
+		req.Name,
+		req.Description,
+		req.MaxTeamSize,
+		req.StartsAt,
+		req.EndsAt,
+	)
+	if err != nil {
+		apperrors.RespondError(w, err)
+		return
+	}
+
+	apperrors.RespondJSON(w, http.StatusOK, mapEvent(event))
+}
+
+// Delete godoc — DELETE /api/v1/events/{event_id}
+// Elimina un evento existente. Solo admins. Solo eventos en estado draft.
+// Exito: 204 No Content
+func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "event_id")
+	if err := h.deleteUC.Execute(id); err != nil {
+		apperrors.RespondError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // GetByID godoc

@@ -20,4 +20,7 @@ type Repository interface {
 
 	// Update persiste los cambios en un evento existente (estado, fechas, etc.).
 	Update(event *Event) error
+
+	// Delete elimina un evento por su UUID.
+	Delete(id uuid.UUID) error
 }

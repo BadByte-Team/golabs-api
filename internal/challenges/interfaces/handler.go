@@ -121,6 +121,7 @@ func (h *ChallengeHandler) Create(w http.ResponseWriter, r *http.Request) {
 		challengedomain.ChallengeCategory(req.Category),
 		req.Points,
 		challengedomain.ChallengeDifficulty(req.Difficulty),
+		req.FileURL,
 	)
 	if err != nil {
 		apperrors.RespondError(w, err)
@@ -152,6 +153,7 @@ func (h *ChallengeHandler) Update(w http.ResponseWriter, r *http.Request) {
 		challengedomain.ChallengeCategory(req.Category),
 		req.Points,
 		challengedomain.ChallengeDifficulty(req.Difficulty),
+		req.FileURL,
 	)
 	if err != nil {
 		apperrors.RespondError(w, err)
@@ -271,6 +273,7 @@ func mapChallenge(c *challengedomain.Challenge) ChallengeResponse {
 		Category:    string(c.Category),
 		Points:      c.Points,
 		Difficulty:  string(c.Difficulty),
+		FileURL:     c.FileURL,
 		Visible:     c.Visible,
 		CreatedAt:   c.CreatedAt,
 		UpdatedAt:   c.UpdatedAt,

@@ -119,7 +119,7 @@ rotate-password:
 
 # Entra a la consola de MariaDB
 connect:
-	docker exec -it golabs-mariadb mariadb -u root -p$(DB_PASSWORD) $(DB_NAME)
+	docker exec -it golabs-api-db-1 mariadb -u root -p$(DB_PASSWORD) $(DB_NAME)
 
 # Muestra el historial de migraciones aplicadas
 history:

@@ -40,13 +40,14 @@ func (uc *CreateChallengeUseCase) Execute(
 	category challengedomain.ChallengeCategory,
 	points int,
 	difficulty challengedomain.ChallengeDifficulty,
+	fileURL string,
 ) (*challengedomain.Challenge, error) {
 	// Verificar que el evento existe antes de asociar el challenge.
 	if _, err := uc.eventRepo.GetByID(eventID); err != nil {
 		return nil, err
 	}
 
-	challenge, err := challengedomain.NewChallenge(eventID, title, description, category, points, difficulty)
+	challenge, err := challengedomain.NewChallenge(eventID, title, description, category, points, difficulty, fileURL)
 	if err != nil {
 		return nil, err
 	}

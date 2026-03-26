@@ -27,8 +27,8 @@ func (r *MySQLChallengeRepository) SaveChallenge(c *challengedomain.Challenge) e
 	query := `
 		INSERT INTO challenges (
 			id, event_id, title, description, category,
-			points, difficulty, visible, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			points, difficulty, file_url, visible, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	smt, err := r.db.Prepare(query)
 	if err != nil {
@@ -36,9 +36,14 @@ func (r *MySQLChallengeRepository) SaveChallenge(c *challengedomain.Challenge) e
 	}
 	defer smt.Close()
 
+	var fileURL *string
+	if c.FileURL != "" {
+		fileURL = &c.FileURL
+	}
+
 	_, err = smt.Exec(
 		c.ID.String(), c.EventID.String(), c.Title, c.Description,
-		string(c.Category), c.Points, string(c.Difficulty), c.Visible,
+		string(c.Category), c.Points, string(c.Difficulty), fileURL, c.Visible,
 		c.CreatedAt, c.UpdatedAt,
 	)
 	return err
@@ -50,7 +55,7 @@ func (r *MySQLChallengeRepository) UpdateChallenge(c *challengedomain.Challenge)
 	query := `
 		UPDATE challenges
 		SET title = ?, description = ?, category = ?, points = ?,
-		    difficulty = ?, visible = ?, updated_at = ?
+		    difficulty = ?, file_url = ?, visible = ?, updated_at = ?
 		WHERE id = ?
 	`
 	smt, err := r.db.Prepare(query)
@@ -59,9 +64,14 @@ func (r *MySQLChallengeRepository) UpdateChallenge(c *challengedomain.Challenge)
 	}
 	defer smt.Close()
 
+	var fileURL *string
+	if c.FileURL != "" {
+		fileURL = &c.FileURL
+	}
+
 	_, err = smt.Exec(
 		c.Title, c.Description, string(c.Category), c.Points,
-		string(c.Difficulty), c.Visible, c.UpdatedAt, c.ID.String(),
+		string(c.Difficulty), fileURL, c.Visible, c.UpdatedAt, c.ID.String(),
 	)
 	return err
 }
@@ -70,7 +80,7 @@ func (r *MySQLChallengeRepository) UpdateChallenge(c *challengedomain.Challenge)
 func (r *MySQLChallengeRepository) GetChallengeByID(id uuid.UUID) (*challengedomain.Challenge, error) {
 	query := `
 		SELECT id, event_id, title, description, category,
-		       points, difficulty, visible, created_at, updated_at
+		       points, difficulty, file_url, visible, created_at, updated_at
 		FROM challenges
 		WHERE id = ?
 		LIMIT 1
@@ -89,7 +99,7 @@ func (r *MySQLChallengeRepository) GetChallengeByID(id uuid.UUID) (*challengedom
 // Los filtros de category y difficulty son opcionales; cadena vacia = sin filtro.
 // Los resultados se ordenan por category y luego por points ascendente.
 func (r *MySQLChallengeRepository) ListChallengesByEvent(eventID uuid.UUID, visibleOnly bool, category, difficulty string) ([]*challengedomain.Challenge, error) {
-	q := `SELECT id, event_id, title, description, category, points, difficulty, visible, created_at, updated_at FROM challenges WHERE event_id = ?`
+	q := `SELECT id, event_id, title, description, category, points, difficulty, file_url, visible, created_at, updated_at FROM challenges WHERE event_id = ?`
 	args := []any{eventID.String()}
 
 	if visibleOnly {
@@ -278,10 +288,11 @@ func (r *MySQLChallengeRepository) GetFirstBlood(challengeID uuid.UUID) (*challe
 func scanChallenge(row *sql.Row) (*challengedomain.Challenge, error) {
 	var c challengedomain.Challenge
 	var id, eventID, category, difficulty string
+	var fileURL *string
 
 	err := row.Scan(
 		&id, &eventID, &c.Title, &c.Description, &category,
-		&c.Points, &difficulty, &c.Visible, &c.CreatedAt, &c.UpdatedAt,
+		&c.Points, &difficulty, &fileURL, &c.Visible, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("challenge not found")
@@ -300,6 +311,9 @@ func scanChallenge(row *sql.Row) (*challengedomain.Challenge, error) {
 	}
 	c.Category = challengedomain.ChallengeCategory(category)
 	c.Difficulty = challengedomain.ChallengeDifficulty(difficulty)
+	if fileURL != nil {
+		c.FileURL = *fileURL
+	}
 
 	return &c, nil
 }
@@ -308,10 +322,11 @@ func scanChallenge(row *sql.Row) (*challengedomain.Challenge, error) {
 func scanChallengeRow(rows *sql.Rows) (*challengedomain.Challenge, error) {
 	var c challengedomain.Challenge
 	var id, eventID, category, difficulty string
+	var fileURL *string
 
 	err := rows.Scan(
 		&id, &eventID, &c.Title, &c.Description, &category,
-		&c.Points, &difficulty, &c.Visible, &c.CreatedAt, &c.UpdatedAt,
+		&c.Points, &difficulty, &fileURL, &c.Visible, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -327,6 +342,9 @@ func scanChallengeRow(rows *sql.Rows) (*challengedomain.Challenge, error) {
 	}
 	c.Category = challengedomain.ChallengeCategory(category)
 	c.Difficulty = challengedomain.ChallengeDifficulty(difficulty)
+	if fileURL != nil {
+		c.FileURL = *fileURL
+	}
 
 	return &c, nil
 }

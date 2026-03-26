@@ -12,6 +12,15 @@ type CreateEventRequest struct {
 	EndsAt      time.Time `json:"ends_at"       validate:"required"`
 }
 
+// UpdateEventRequest es el body de la peticion para actualizar un evento existente.
+type UpdateEventRequest struct {
+	Name        string    `json:"name"          validate:"required,max=100"`
+	Description string    `json:"description"   validate:"max=1000"`
+	MaxTeamSize int       `json:"max_team_size" validate:"required,gt=0"`
+	StartsAt    time.Time `json:"starts_at"     validate:"required"`
+	EndsAt      time.Time `json:"ends_at"       validate:"required"`
+}
+
 // EventResponse es la representacion JSON de un evento para la API.
 // El campo Status es el string del EventStatus (draft, open, running, finished).
 type EventResponse struct {

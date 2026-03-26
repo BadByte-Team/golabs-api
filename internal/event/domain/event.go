@@ -108,6 +108,44 @@ func (e *Event) Finish() error {
 	return nil
 }
 
+// UpdateFields modifica los campos editables del evento.
+// Solo se permite editar eventos en estado draft.
+//
+// Reglas:
+//   - el evento debe estar en estado draft.
+//   - name es obligatorio.
+//   - maxTeamSize debe ser mayor que cero.
+//   - endsAt debe ser posterior a startsAt.
+//
+// Retorna error si alguna regla se viola.
+func (e *Event) UpdateFields(name, description string, maxTeamSize int, startsAt, endsAt time.Time) error {
+	if e.Status != EventDraft {
+		return errors.New("solo eventos en estado draft pueden editarse")
+	}
+	if name == "" {
+		return errors.New("el nombre del evento es requerido")
+	}
+	if maxTeamSize <= 0 {
+		return errors.New("maxTeamSize debe ser mayor que cero")
+	}
+	if endsAt.Before(startsAt) {
+		return errors.New("la fecha de fin debe ser posterior a la fecha de inicio")
+	}
+
+	e.Name = name
+	e.Description = description
+	e.MaxTeamSize = maxTeamSize
+	e.StartsAt = startsAt
+	e.EndsAt = endsAt
+	e.UpdatedAt = time.Now()
+	return nil
+}
+
+// CanDelete retorna true si el evento puede ser eliminado (solo en estado draft).
+func (e *Event) CanDelete() bool {
+	return e.Status == EventDraft
+}
+
 // IsOpen retorna true si el evento acepta inscripciones de nuevos equipos.
 func (e *Event) IsOpen() bool {
 	return e.Status == EventOpen

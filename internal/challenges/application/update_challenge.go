@@ -30,13 +30,14 @@ func (uc *UpdateChallengeUseCase) Execute(
 	category challengedomain.ChallengeCategory,
 	points int,
 	difficulty challengedomain.ChallengeDifficulty,
+	fileURL string,
 ) (*challengedomain.Challenge, error) {
 	challenge, err := uc.repo.GetChallengeByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := challenge.Update(title, description, category, points, difficulty); err != nil {
+	if err := challenge.Update(title, description, category, points, difficulty, fileURL); err != nil {
 		return nil, err
 	}
 

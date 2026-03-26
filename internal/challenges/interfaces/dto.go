@@ -10,6 +10,7 @@ type CreateChallengeRequest struct {
 	Category    string `json:"category"    validate:"required,oneof=web pwn rev crypto forensics misc"`
 	Points      int    `json:"points"      validate:"required,gt=0"`
 	Difficulty  string `json:"difficulty"  validate:"required,oneof=easy medium hard"`
+	FileURL     string `json:"file_url"    validate:"omitempty,url,max=512"`
 }
 
 // UpdateChallengeRequest es el body para actualizar un challenge existente (admin only).
@@ -19,6 +20,7 @@ type UpdateChallengeRequest struct {
 	Category    string `json:"category"    validate:"required,oneof=web pwn rev crypto forensics misc"`
 	Points      int    `json:"points"      validate:"required,gt=0"`
 	Difficulty  string `json:"difficulty"  validate:"required,oneof=easy medium hard"`
+	FileURL     string `json:"file_url"    validate:"omitempty,url,max=512"`
 }
 
 // ChallengeResponse es la representacion JSON de un challenge para la API.
@@ -31,6 +33,7 @@ type ChallengeResponse struct {
 	Category         string    `json:"category"`
 	Points           int       `json:"points"`
 	Difficulty       string    `json:"difficulty"`
+	FileURL          string    `json:"file_url,omitempty"`
 	Visible          bool      `json:"visible"`
 	SolveCount       int       `json:"solve_count"`
 	FirstBloodTeamID *string   `json:"first_blood_team_id,omitempty"`

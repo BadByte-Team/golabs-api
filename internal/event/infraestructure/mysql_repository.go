@@ -202,3 +202,17 @@ func scanEventRow(rows *sql.Rows) (*eventdomain.Event, error) {
 	e.Status = eventdomain.EventStatus(status)
 	return &e, nil
 }
+
+// Delete elimina un evento por su UUID.
+func (r *MySQLEventRepository) Delete(id uuid.UUID) error {
+	query := `DELETE FROM events WHERE id = ?`
+
+	smt, err := r.db.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer smt.Close()
+
+	_, err = smt.Exec(id.String())
+	return err
+}

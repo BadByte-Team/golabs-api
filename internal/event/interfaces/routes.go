@@ -22,10 +22,12 @@ import (
 //   - GET /events/{id}    detalle de un evento
 //
 // Rutas de admin (requieren JWT + rol "admin"):
-//   - POST /events/              crear evento (estado inicial: draft)
-//   - POST /events/{id}/open     transicion draft -> open
-//   - POST /events/{id}/start    transicion open  -> running
-//   - POST /events/{id}/finish   transicion running -> finished
+//   - POST   /events/              crear evento (estado inicial: draft)
+//   - PUT    /events/{id}          actualizar evento (solo draft)
+//   - DELETE /events/{id}          eliminar evento (solo draft)
+//   - POST   /events/{id}/open     transicion draft -> open
+//   - POST   /events/{id}/start    transicion open  -> running
+//   - POST   /events/{id}/finish   transicion running -> finished
 //
 // Nota: las rutas de admin usan JWTAuth sin LoadUser ya que el rol viene del token,
 // evitando una consulta adicional a BD por peticion.
@@ -34,6 +36,8 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 
 	// Instanciar use cases.
 	createUC := eventapp.NewCreateEventUseCase(repo)
+	updateUC := eventapp.NewUpdateEventUseCase(repo)
+	deleteUC := eventapp.NewDeleteEventUseCase(repo)
 	getUC := eventapp.NewGetEventByIDUseCase(repo)
 	listUC := eventapp.NewListEventsUseCase(repo)
 	openUC := eventapp.NewOpenEventUseCase(repo)
@@ -43,6 +47,8 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 	// Instanciar handler.
 	handler := NewEventHandler(
 		createUC,
+		updateUC,
+		deleteUC,
 		getUC,
 		listUC,
 		openUC,
@@ -62,6 +68,8 @@ func RegisterRoutes(r chi.Router, db *sql.DB, jwtSvc *security.JWTService) {
 			r.Use(accessmw.RequireRole(userdomain.RoleAdmin))
 
 			r.Post("/", handler.Create)
+			r.Put("/{event_id}", handler.Update)
+			r.Delete("/{event_id}", handler.Delete)
 			r.Post("/{event_id}/open", handler.Open)
 			r.Post("/{event_id}/start", handler.Start)
 			r.Post("/{event_id}/finish", handler.Finish)

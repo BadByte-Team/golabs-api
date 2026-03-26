@@ -43,7 +43,8 @@ type Challenge struct {
 	Category    ChallengeCategory
 	Points      int
 	Difficulty  ChallengeDifficulty
-	Visible     bool // false hasta que el admin publique el challenge explicitamente
+	FileURL     string // URL para descargar archivo asociado al reto (opcional)
+	Visible     bool   // false hasta que el admin publique el challenge explicitamente
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -64,6 +65,7 @@ func NewChallenge(
 	category ChallengeCategory,
 	points int,
 	difficulty ChallengeDifficulty,
+	fileURL string,
 ) (*Challenge, error) {
 	if eventID == uuid.Nil {
 		return nil, errors.New("eventID es requerido")
@@ -91,6 +93,7 @@ func NewChallenge(
 		Category:    category,
 		Points:      points,
 		Difficulty:  difficulty,
+		FileURL:     fileURL,
 		Visible:     false,
 		CreatedAt:   now,
 		UpdatedAt:   now,
@@ -101,7 +104,7 @@ func NewChallenge(
 // No permite cambiar EventID ni Visible; esos se manejan con metodos dedicados.
 //
 // Retorna error si title esta vacio o points es negativo.
-func (c *Challenge) Update(title, description string, category ChallengeCategory, points int, difficulty ChallengeDifficulty) error {
+func (c *Challenge) Update(title, description string, category ChallengeCategory, points int, difficulty ChallengeDifficulty, fileURL string) error {
 	if title == "" {
 		return errors.New("el titulo es requerido")
 	}
@@ -113,6 +116,7 @@ func (c *Challenge) Update(title, description string, category ChallengeCategory
 	c.Category = category
 	c.Points = points
 	c.Difficulty = difficulty
+	c.FileURL = fileURL
 	c.UpdatedAt = time.Now()
 	return nil
 }
